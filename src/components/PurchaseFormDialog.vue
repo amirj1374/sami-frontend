@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { purchasesApi } from '@/api/purchases'
 import { productsApi } from '@/api/products'
 import { suppliersApi } from '@/api/suppliers'
@@ -26,6 +27,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: [] }>()
+
+const { t } = useI18n()
 
 const open = computed({
   get: () => props.modelValue,
@@ -131,12 +134,12 @@ const total = computed(() =>
 
 async function submit() {
   if (!form.typeId || !supplier.value) {
-    setFormError({ code: 'VALIDATION', message: 'Type and supplier are required' })
+    setFormError({ code: 'VALIDATION', message: t('purchases.validation.typeSupplierRequired') })
     return
   }
   const validItems = items.value.filter((i) => i.productId > 0 && Number(i.quantity) > 0)
   if (validItems.length === 0) {
-    setFormError({ code: 'VALIDATION', message: 'At least one item with a product is required' })
+    setFormError({ code: 'VALIDATION', message: t('purchases.validation.itemRequired') })
     return
   }
   saving.value = true
@@ -174,7 +177,7 @@ async function submit() {
   <v-dialog v-model="open" max-width="960">
     <v-card rounded="lg">
       <v-card-title class="text-h6 pt-4 px-6">
-        {{ isEdit ? 'Edit draft ' + purchase?.purchase.purchaseNumber : 'New purchase' }}
+        {{ isEdit ? t('purchases.form.editTitle', { number: purchase?.purchase.purchaseNumber }) : t('purchases.newPurchase') }}
       </v-card-title>
 
       <v-card-text class="px-6" style="max-height: 65vh; overflow-y: auto">
@@ -186,8 +189,8 @@ async function submit() {
           <v-col cols="12" sm="3">
             <v-select
               v-model="form.typeId"
-              label="Type *"
-              :items="types.filter((t) => t.active)"
+              :label="t('purchases.form.typeRequired')"
+              :items="types.filter((ty) => ty.active)"
               item-title="name"
               item-value="id"
             />
@@ -199,7 +202,7 @@ async function submit() {
               :items="supplier && !supplierCandidates.length ? [supplier] : supplierCandidates"
               item-title="displayName"
               return-object
-              label="Supplier *"
+              :label="t('purchases.form.supplierRequired')"
               no-filter
               clearable
             >
@@ -211,7 +214,7 @@ async function submit() {
           <v-col cols="12" sm="4">
             <v-select
               v-model="form.warehouseId"
-              label="Warehouse"
+              :label="t('purchases.form.warehouse')"
               :items="warehouses.filter((w) => w.active)"
               item-title="name"
               item-value="id"
@@ -219,15 +222,15 @@ async function submit() {
             />
           </v-col>
           <v-col cols="12">
-            <v-text-field v-model="form.notes" label="Notes" maxlength="2000" />
+            <v-text-field v-model="form.notes" :label="t('purchases.form.notes')" maxlength="2000" />
           </v-col>
         </v-row>
 
         <div class="d-flex align-center mt-2 mb-2">
-          <span class="text-subtitle-2">Items</span>
+          <span class="text-subtitle-2">{{ t('purchases.form.items') }}</span>
           <v-spacer />
           <v-btn size="small" variant="tonal" prepend-icon="mdi-plus" @click="addItem">
-            Add item
+            {{ t('purchases.form.addItem') }}
           </v-btn>
         </div>
 
@@ -236,7 +239,7 @@ async function submit() {
             <v-col cols="12" sm="4">
               <v-autocomplete
                 v-model="item.productId"
-                label="Product *"
+                :label="t('purchases.form.productRequired')"
                 :items="products"
                 item-title="name"
                 item-value="id"
@@ -247,7 +250,7 @@ async function submit() {
             <v-col cols="4" sm="1">
               <v-text-field
                 v-model.number="item.quantity"
-                label="Qty"
+                :label="t('purchases.form.qty')"
                 type="number"
                 min="0.001"
                 density="compact"
@@ -255,12 +258,12 @@ async function submit() {
               />
             </v-col>
             <v-col cols="4" sm="1">
-              <v-text-field v-model="item.unit" label="Unit" density="compact" hide-details />
+              <v-text-field v-model="item.unit" :label="t('purchases.form.unit')" density="compact" hide-details />
             </v-col>
             <v-col cols="4" sm="2">
               <v-text-field
                 v-model.number="item.unitPrice"
-                label="Unit price"
+                :label="t('purchases.form.unitPrice')"
                 type="number"
                 min="0"
                 density="compact"
@@ -270,7 +273,7 @@ async function submit() {
             <v-col cols="4" sm="2">
               <v-text-field
                 v-model.number="item.discount"
-                label="Discount"
+                :label="t('purchases.form.discount')"
                 type="number"
                 min="0"
                 density="compact"
@@ -280,7 +283,7 @@ async function submit() {
             <v-col cols="4" sm="2">
               <v-text-field
                 v-model="item.expectedDelivery"
-                label="Expected"
+                :label="t('purchases.form.expected')"
                 type="date"
                 density="compact"
                 hide-details
@@ -289,14 +292,14 @@ async function submit() {
             <v-col cols="12" sm="8">
               <v-text-field
                 v-model="item.description"
-                label="Description"
+                :label="t('purchases.form.description')"
                 density="compact"
                 hide-details
               />
             </v-col>
             <v-col cols="10" sm="3" class="d-flex ga-4">
-              <v-checkbox v-model="item.requiresSerial" label="Serial" density="compact" hide-details />
-              <v-checkbox v-model="item.requiresImei" label="IMEI" density="compact" hide-details />
+              <v-checkbox v-model="item.requiresSerial" :label="t('purchases.form.serial')" density="compact" hide-details />
+              <v-checkbox v-model="item.requiresImei" :label="t('purchases.form.imei')" density="compact" hide-details />
             </v-col>
             <v-col cols="2" sm="1" class="text-right">
               <v-btn icon="mdi-close" size="x-small" variant="text" @click="items.splice(i, 1)" />
@@ -305,14 +308,16 @@ async function submit() {
         </v-card>
 
         <div class="text-right text-subtitle-1">
-          Total: <strong>{{ total.toFixed(2) }}</strong>
+          <i18n-t keypath="purchases.form.total" tag="span">
+            <template #amount><strong>{{ total.toFixed(2) }}</strong></template>
+          </i18n-t>
         </div>
       </v-card-text>
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Cancel</v-btn>
-        <v-btn color="primary" :loading="saving" @click="submit">Save draft</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
+        <v-btn color="primary" :loading="saving" @click="submit">{{ t('purchases.form.saveDraft') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

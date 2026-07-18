@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { suppliersApi, supplierConfigApi, type SupplierListParams } from '@/api/suppliers'
 import { usePermission } from '@/composables/usePermission'
@@ -18,6 +19,7 @@ import type {
   SupplierRow,
 } from '@/types/models'
 
+const { t } = useI18n()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
@@ -63,15 +65,15 @@ const totalItems = ref(0)
 const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
-const headers = [
-  { title: 'Code', key: 'supplierCode' },
-  { title: 'Supplier', key: 'displayName' },
-  { title: 'Type', key: 'type', sortable: false },
-  { title: 'Status', key: 'status', sortable: false },
-  { title: 'Rating', key: 'ratingAvg' },
-  { title: 'City', key: 'city' },
+const headers = computed(() => [
+  { title: t('suppliers.headers.code'), key: 'supplierCode' },
+  { title: t('suppliers.headers.supplier'), key: 'displayName' },
+  { title: t('suppliers.headers.type'), key: 'type', sortable: false },
+  { title: t('suppliers.headers.status'), key: 'status', sortable: false },
+  { title: t('suppliers.headers.rating'), key: 'ratingAvg' },
+  { title: t('suppliers.headers.city'), key: 'city' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
-]
+])
 
 // --- Filters ----------------------------------------------------------------
 const searchFilter = ref('')
@@ -131,12 +133,12 @@ watch(
 )
 
 const statusItems = computed(() => [
-  { title: 'All statuses', value: null as number | null },
+  { title: t('suppliers.filters.allStatuses'), value: null as number | null },
   ...statuses.value.map((s) => ({ title: s.name, value: s.id as number | null })),
 ])
 const typeItems = computed(() => [
-  { title: 'All types', value: null as number | null },
-  ...types.value.map((t) => ({ title: t.name, value: t.id as number | null })),
+  { title: t('suppliers.filters.allTypes'), value: null as number | null },
+  ...types.value.map((ty) => ({ title: ty.name, value: ty.id as number | null })),
 ])
 
 // --- Dialogs / actions -------------------------------------------------------
@@ -240,7 +242,7 @@ function statusColor(status: SupStatus): string {
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Suppliers</h1>
+      <h1 class="text-h4">{{ t('suppliers.title') }}</h1>
       <v-spacer />
       <v-btn
         v-can="'suppliers:export'"
@@ -250,10 +252,10 @@ function statusColor(status: SupStatus): string {
         :loading="exporting"
         @click="exportCsv"
       >
-        Export CSV
+        {{ t('suppliers.exportCsv') }}
       </v-btn>
       <v-btn v-can="'suppliers:create'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New supplier
+        {{ t('suppliers.newSupplier') }}
       </v-btn>
     </div>
 
@@ -267,7 +269,7 @@ function statusColor(status: SupStatus): string {
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="searchFilter"
-              label="Search code, company, contact, phone, email, city…"
+              :label="t('suppliers.filters.searchPlaceholder')"
               prepend-inner-icon="mdi-magnify"
               clearable
               hide-details
@@ -275,27 +277,27 @@ function statusColor(status: SupStatus): string {
             />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="statusFilter" label="Status" :items="statusItems" hide-details density="comfortable" />
+            <v-select v-model="statusFilter" :label="t('suppliers.headers.status')" :items="statusItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="typeFilter" label="Type" :items="typeItems" hide-details density="comfortable" />
+            <v-select v-model="typeFilter" :label="t('suppliers.headers.type')" :items="typeItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
             <v-select
               v-model="minRatingFilter"
-              label="Min rating"
-              :items="[{ title: 'Any', value: null }, 2, 3, 4, 4.5]"
+              :label="t('suppliers.filters.minRating')"
+              :items="[{ title: t('suppliers.filters.any'), value: null }, 2, 3, 4, 4.5]"
               hide-details
               density="comfortable"
             />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-switch v-model="includeHidden" label="Archived & deleted" color="primary" hide-details density="compact" />
+            <v-switch v-model="includeHidden" :label="t('suppliers.filters.archivedDeleted')" color="primary" hide-details density="compact" />
           </v-col>
           <v-col cols="12" sm="6">
             <v-autocomplete
               v-model="categoryFilter"
-              label="Categories"
+              :label="t('suppliers.filters.categories')"
               :items="categories"
               item-title="name"
               item-value="id"
@@ -309,7 +311,7 @@ function statusColor(status: SupStatus): string {
           <v-col cols="12" sm="6">
             <v-autocomplete
               v-model="tagFilter"
-              label="Tags"
+              :label="t('suppliers.filters.tags')"
               :items="tags"
               item-title="name"
               item-value="id"
@@ -370,26 +372,26 @@ function statusColor(status: SupStatus): string {
               <v-list-item
                 v-if="can('suppliers:archive') && !item.status.isArchivedState && !item.status.isDeletedState"
                 prepend-icon="mdi-archive"
-                title="Archive"
+                :title="t('suppliers.actions.archive')"
                 @click="rowAction(item, () => suppliersApi.archive(item.id))"
               />
               <v-list-item
                 v-if="can('suppliers:restore') && (item.status.isArchivedState || item.status.isDeletedState)"
                 prepend-icon="mdi-restore"
-                title="Restore"
+                :title="t('suppliers.actions.restore')"
                 @click="rowAction(item, () => suppliersApi.restore(item.id))"
               />
               <v-list-item
                 v-if="can('suppliers:delete') && !item.status.isDeletedState"
                 prepend-icon="mdi-delete"
-                title="Delete (soft)"
+                :title="t('suppliers.actions.deleteSoft')"
                 @click="deleteTarget = item"
               />
               <v-list-item
                 v-if="can('suppliers:purge') && item.status.isDeletedState"
                 prepend-icon="mdi-delete-forever"
                 base-color="error"
-                title="Delete permanently"
+                :title="t('suppliers.actions.deletePermanently')"
                 @click="purgeTarget = item"
               />
             </v-list>
@@ -420,15 +422,17 @@ function statusColor(status: SupStatus): string {
     <!-- Soft delete confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="440" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete supplier</v-card-title>
+        <v-card-title class="text-h6">{{ t('suppliers.deleteDialog.title') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.displayName }}</strong> ({{ deleteTarget?.supplierCode }})?
-          The record is soft-deleted and restorable; purchase history stays intact.
+          <i18n-t keypath="suppliers.deleteDialog.body" tag="span">
+            <template #name><strong>{{ deleteTarget?.displayName }}</strong></template>
+            <template #code>{{ deleteTarget?.supplierCode }}</template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -436,16 +440,18 @@ function statusColor(status: SupStatus): string {
     <!-- Permanent delete confirmation -->
     <v-dialog :model-value="!!purgeTarget" max-width="440" @update:model-value="purgeTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete permanently</v-card-title>
+        <v-card-title class="text-h6">{{ t('suppliers.purgeDialog.title') }}</v-card-title>
         <v-card-text>
-          Permanently remove <strong>{{ purgeTarget?.displayName }}</strong>
-          ({{ purgeTarget?.supplierCode }})? <strong>This cannot be undone.</strong>
-          Suppliers referenced by purchases are protected and cannot be removed.
+          <i18n-t keypath="suppliers.purgeDialog.body" tag="span">
+            <template #name><strong>{{ purgeTarget?.displayName }}</strong></template>
+            <template #code>{{ purgeTarget?.supplierCode }}</template>
+            <template #warning><strong>{{ t('suppliers.purgeDialog.cannotUndo') }}</strong></template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="purgeTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmPurge">Delete forever</v-btn>
+          <v-btn variant="text" @click="purgeTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmPurge">{{ t('suppliers.purgeDialog.deleteForever') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

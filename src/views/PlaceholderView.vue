@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMenuStore } from '@/stores/menu'
+
+const { t } = useI18n()
 
 /**
  * Target of dynamically registered module routes: a module created in the
@@ -12,7 +15,7 @@ const route = useRoute()
 const menu = useMenuStore()
 
 const moduleItem = computed(() => menu.items.find((item) => item.path === route.path) ?? null)
-const moduleName = computed(() => moduleItem.value?.name ?? 'Module')
+const moduleName = computed(() => moduleItem.value?.name ?? t('placeholder.defaultName'))
 const moduleIcon = computed(() => moduleItem.value?.icon ?? 'mdi-view-module')
 </script>
 
@@ -23,11 +26,9 @@ const moduleIcon = computed(() => moduleItem.value?.icon ?? 'mdi-view-module')
     <v-card rounded="lg" border flat>
       <v-card-text class="text-center py-12">
         <v-icon :icon="moduleIcon" size="64" color="primary" class="mb-4" />
-        <div class="text-h6 mb-2">{{ moduleName }} is scaffolded</div>
+        <div class="text-h6 mb-2">{{ t('placeholder.scaffolded', { name: moduleName }) }}</div>
         <p class="text-body-1 text-medium-emphasis mx-auto" style="max-width: 480px">
-          This module does not have its screens built yet, but it is already wired into the
-          navigation and its permissions already apply — only users who may view it can open
-          this page.
+          {{ t('placeholder.description') }}
         </p>
       </v-card-text>
     </v-card>

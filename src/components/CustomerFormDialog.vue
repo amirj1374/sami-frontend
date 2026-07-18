@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { customersApi } from '@/api/customers'
 import { useApiError } from '@/composables/useApiError'
 import type {
@@ -33,6 +34,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: [] }>()
 
+const { t } = useI18n()
+
 const open = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -45,7 +48,12 @@ const { message: formError, set: setFormError, clear: clearFormError } = useApiE
 const selectableStatuses = computed(() =>
   props.statuses.filter((s) => !s.isArchivedState && !s.isDeletedState),
 )
-const genderItems = ['male', 'female', 'other', 'unspecified']
+const genderItems = computed(() => [
+  { title: t('customers.form.gender.male'), value: 'male' },
+  { title: t('customers.form.gender.female'), value: 'female' },
+  { title: t('customers.form.gender.other'), value: 'other' },
+  { title: t('customers.form.gender.unspecified'), value: 'unspecified' },
+])
 
 // --- Form state (plain reactive; server validates lengths/rules too) --------
 interface FormState {
@@ -190,8 +198,8 @@ function buildPayload(ignoreDuplicates: boolean): CustomerPayload {
 }
 
 function validate(): boolean {
-  displayNameError.value = form.displayName.trim() ? '' : 'Display name is required'
-  typeError.value = form.typeId ? '' : 'Customer type is required'
+  displayNameError.value = form.displayName.trim() ? '' : t('customers.validation.displayNameRequired')
+  typeError.value = form.typeId ? '' : t('customers.validation.typeRequired')
   return !displayNameError.value && !typeError.value
 }
 
@@ -233,17 +241,17 @@ async function submit(ignoreDuplicates = false) {
   <v-dialog v-model="open" max-width="820">
     <v-card rounded="lg">
       <v-card-title class="text-h6 pt-4 px-6">
-        {{ isEdit ? 'Edit customer' : 'New customer' }}
+        {{ isEdit ? t('customers.form.editTitle') : t('customers.form.newTitle') }}
         <span v-if="customer" class="text-body-2 text-medium-emphasis ml-2">
           {{ customer.customer.customerCode }}
         </span>
       </v-card-title>
 
       <v-tabs v-model="tab" class="px-4">
-        <v-tab value="identity">Identity</v-tab>
-        <v-tab value="contacts">Phones & emails</v-tab>
-        <v-tab value="addresses">Addresses</v-tab>
-        <v-tab v-if="preferenceDefs.length" value="preferences">Preferences</v-tab>
+        <v-tab value="identity">{{ t('customers.form.tabs.identity') }}</v-tab>
+        <v-tab value="contacts">{{ t('customers.form.tabs.contacts') }}</v-tab>
+        <v-tab value="addresses">{{ t('customers.form.tabs.addresses') }}</v-tab>
+        <v-tab v-if="preferenceDefs.length" value="preferences">{{ t('customers.form.tabs.preferences') }}</v-tab>
       </v-tabs>
       <v-divider />
 
@@ -254,7 +262,7 @@ async function submit(ignoreDuplicates = false) {
 
         <!-- Duplicate confirmation panel -->
         <v-alert v-if="duplicates" type="warning" variant="tonal" class="mb-4">
-          <p class="font-weight-medium mb-2">Possible duplicate customers found:</p>
+          <p class="font-weight-medium mb-2">{{ t('customers.form.duplicates.heading') }}</p>
           <ul class="ml-4 mb-2">
             <li v-for="m in duplicates" :key="m.customerId">
               <strong>{{ m.customerCode }}</strong> — {{ m.displayName }}
@@ -262,12 +270,12 @@ async function submit(ignoreDuplicates = false) {
             </li>
           </ul>
           <p class="text-body-2 mb-2">
-            Consider merging with an existing record instead of creating a duplicate.
+            {{ t('customers.form.duplicates.hint') }}
           </p>
           <v-btn size="small" color="warning" :loading="saving" class="mr-2" @click="submit(true)">
-            Save anyway
+            {{ t('customers.form.duplicates.saveAnyway') }}
           </v-btn>
-          <v-btn size="small" variant="text" @click="duplicates = null">Back</v-btn>
+          <v-btn size="small" variant="text" @click="duplicates = null">{{ t('common.back') }}</v-btn>
         </v-alert>
 
         <v-window v-model="tab">
@@ -276,7 +284,7 @@ async function submit(ignoreDuplicates = false) {
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="form.displayName"
-                  label="Display name *"
+                  :label="t('customers.form.fields.displayName')"
                   :error-messages="displayNameError"
                   maxlength="160"
                 />
@@ -284,23 +292,23 @@ async function submit(ignoreDuplicates = false) {
               <v-col cols="12" sm="6">
                 <v-select
                   v-model="form.typeId"
-                  label="Type *"
-                  :items="types.filter((t) => t.active)"
+                  :label="t('customers.form.fields.type')"
+                  :items="types.filter((ct) => ct.active)"
                   item-title="name"
                   item-value="id"
                   :error-messages="typeError"
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.firstName" label="First name" maxlength="80" />
+                <v-text-field v-model="form.firstName" :label="t('customers.form.fields.firstName')" maxlength="80" />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.lastName" label="Last name" maxlength="80" />
+                <v-text-field v-model="form.lastName" :label="t('customers.form.fields.lastName')" maxlength="80" />
               </v-col>
               <v-col cols="12" sm="6">
                 <v-select
                   v-model="form.statusId"
-                  label="Status"
+                  :label="t('customers.form.fields.status')"
                   :items="selectableStatuses"
                   item-title="name"
                   item-value="id"
@@ -309,7 +317,7 @@ async function submit(ignoreDuplicates = false) {
               <v-col cols="12" sm="6">
                 <v-select
                   v-model="form.sourceId"
-                  label="Source"
+                  :label="t('customers.form.fields.source')"
                   :items="sources.filter((s) => s.active)"
                   item-title="name"
                   item-value="id"
@@ -317,31 +325,31 @@ async function submit(ignoreDuplicates = false) {
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.nationalCode" label="National code" maxlength="32" />
+                <v-text-field v-model="form.nationalCode" :label="t('customers.form.fields.nationalCode')" maxlength="32" />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.passportNumber" label="Passport number" maxlength="32" />
+                <v-text-field v-model="form.passportNumber" :label="t('customers.form.fields.passportNumber')" maxlength="32" />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.birthDate" label="Birth date" type="date" clearable />
+                <v-text-field v-model="form.birthDate" :label="t('customers.form.fields.birthDate')" type="date" clearable />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="form.gender" label="Gender" :items="genderItems" clearable />
+                <v-select v-model="form.gender" :label="t('customers.form.fields.gender')" :items="genderItems" clearable />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.occupation" label="Occupation" maxlength="120" />
+                <v-text-field v-model="form.occupation" :label="t('customers.form.fields.occupation')" maxlength="120" />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.companyName" label="Company name" maxlength="160" />
+                <v-text-field v-model="form.companyName" :label="t('customers.form.fields.companyName')" maxlength="160" />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="form.taxNumber" label="Tax number" maxlength="64" />
+                <v-text-field v-model="form.taxNumber" :label="t('customers.form.fields.taxNumber')" maxlength="64" />
               </v-col>
               <v-col cols="12" sm="6">
                 <v-autocomplete
                   v-model="form.tagIds"
-                  label="Tags"
-                  :items="tags.filter((t) => t.active)"
+                  :label="t('customers.form.fields.tags')"
+                  :items="tags.filter((ct) => ct.active)"
                   item-title="name"
                   item-value="id"
                   multiple
@@ -355,14 +363,14 @@ async function submit(ignoreDuplicates = false) {
           <v-window-item value="contacts">
             <div class="d-flex ga-2 mb-4">
               <v-btn size="small" variant="tonal" prepend-icon="mdi-phone-plus" @click="addContact('PHONE')">
-                Add phone
+                {{ t('customers.form.contacts.addPhone') }}
               </v-btn>
               <v-btn size="small" variant="tonal" prepend-icon="mdi-email-plus" @click="addContact('EMAIL')">
-                Add email
+                {{ t('customers.form.contacts.addEmail') }}
               </v-btn>
             </div>
             <p v-if="contacts.length === 0" class="text-body-2 text-medium-emphasis">
-              No phones or emails yet.
+              {{ t('customers.form.contacts.empty') }}
             </p>
             <v-row v-for="(contact, i) in contacts" :key="i" dense align="center">
               <v-col cols="auto">
@@ -371,7 +379,7 @@ async function submit(ignoreDuplicates = false) {
               <v-col cols="4">
                 <v-text-field
                   v-model="contact.value"
-                  :label="contact.kind === 'PHONE' ? 'Phone number' : 'Email address'"
+                  :label="contact.kind === 'PHONE' ? t('customers.form.contacts.phoneNumber') : t('customers.form.contacts.emailAddress')"
                   density="compact"
                   hide-details
                 />
@@ -379,7 +387,7 @@ async function submit(ignoreDuplicates = false) {
               <v-col cols="3">
                 <v-text-field
                   v-model="contact.label"
-                  label="Label (mobile, work…)"
+                  :label="t('customers.form.contacts.label')"
                   density="compact"
                   hide-details
                 />
@@ -391,7 +399,7 @@ async function submit(ignoreDuplicates = false) {
                   :variant="contact.isDefault ? 'flat' : 'outlined'"
                   @click="setDefaultContact(i)"
                 >
-                  default
+                  {{ t('customers.form.default') }}
                 </v-chip>
               </v-col>
               <v-col cols="auto">
@@ -402,27 +410,27 @@ async function submit(ignoreDuplicates = false) {
 
           <v-window-item value="addresses">
             <v-btn size="small" variant="tonal" prepend-icon="mdi-map-marker-plus" class="mb-4" @click="addAddress">
-              Add address
+              {{ t('customers.form.addresses.add') }}
             </v-btn>
             <p v-if="addresses.length === 0" class="text-body-2 text-medium-emphasis">
-              No addresses yet.
+              {{ t('customers.form.addresses.empty') }}
             </p>
             <v-card v-for="(address, i) in addresses" :key="i" variant="outlined" class="mb-3 pa-3">
               <v-row dense>
                 <v-col cols="12" sm="8">
-                  <v-text-field v-model="address.line" label="Address line *" density="compact" hide-details />
+                  <v-text-field v-model="address.line" :label="t('customers.form.addresses.line')" density="compact" hide-details />
                 </v-col>
                 <v-col cols="12" sm="4">
-                  <v-text-field v-model="address.label" label="Label (home, office…)" density="compact" hide-details />
+                  <v-text-field v-model="address.label" :label="t('customers.form.addresses.label')" density="compact" hide-details />
                 </v-col>
                 <v-col cols="6" sm="4">
-                  <v-text-field v-model="address.city" label="City" density="compact" hide-details />
+                  <v-text-field v-model="address.city" :label="t('customers.form.addresses.city')" density="compact" hide-details />
                 </v-col>
                 <v-col cols="6" sm="4">
-                  <v-text-field v-model="address.province" label="Province" density="compact" hide-details />
+                  <v-text-field v-model="address.province" :label="t('customers.form.addresses.province')" density="compact" hide-details />
                 </v-col>
                 <v-col cols="6" sm="2">
-                  <v-text-field v-model="address.postalCode" label="Postal code" density="compact" hide-details />
+                  <v-text-field v-model="address.postalCode" :label="t('customers.form.addresses.postalCode')" density="compact" hide-details />
                 </v-col>
                 <v-col cols="6" sm="2" class="d-flex align-center justify-end ga-1">
                   <v-chip
@@ -431,7 +439,7 @@ async function submit(ignoreDuplicates = false) {
                     :variant="address.isDefault ? 'flat' : 'outlined'"
                     @click="setDefaultAddress(i)"
                   >
-                    default
+                    {{ t('customers.form.default') }}
                   </v-chip>
                   <v-btn icon="mdi-close" size="x-small" variant="text" @click="addresses.splice(i, 1)" />
                 </v-col>
@@ -440,8 +448,7 @@ async function submit(ignoreDuplicates = false) {
           </v-window-item>
           <v-window-item value="preferences">
             <p class="text-body-2 text-medium-emphasis mb-4">
-              Preference fields are configurable — fields added in configuration appear here
-              automatically.
+              {{ t('customers.form.preferences.hint') }}
             </p>
             <v-row dense>
               <v-col v-for="def in preferenceDefs" :key="def.id" cols="12" sm="6">
@@ -473,9 +480,9 @@ async function submit(ignoreDuplicates = false) {
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Cancel</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
         <v-btn color="primary" :loading="saving" :disabled="!!duplicates" @click="submit()">
-          Save
+          {{ t('common.save') }}
         </v-btn>
       </v-card-actions>
     </v-card>

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { menuApi } from '@/api/menu'
 import { router } from '@/router'
 import type { MenuItem } from '@/types/models'
+import { MOCK_MODE } from '@/mocks/config'
 
 /**
  * Navigation menu state.
@@ -31,7 +32,12 @@ export const useMenuStore = defineStore('menu', () => {
   }
 
   async function fetchAndRegister(): Promise<void> {
-    const menuItems = await menuApi.list()
+    // In Mock Mode the guard must not depend on the backend (or on MSW having
+    // taken control yet), so the menu is loaded offline from mock data. Dead
+    // code / tree-shaken when VITE_ENABLE_MOCK_MODE is off.
+    const menuItems = MOCK_MODE
+      ? (await import('@/mocks/data/menu')).mockMenu
+      : await menuApi.list()
     items.value = menuItems
     for (const item of menuItems) {
       registerDynamicRoute(item)

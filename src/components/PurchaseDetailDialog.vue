@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { purchasesApi } from '@/api/purchases'
 import { useApiError } from '@/composables/useApiError'
 import { usePermission } from '@/composables/usePermission'
+import { useFormat } from '@/composables/useFormat'
 import type {
   PurCancelReason,
   PurIdentifierType,
@@ -34,8 +36,10 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+const { t } = useI18n()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
+const { formatDateTime } = useFormat()
 
 const detail = ref<PurchaseDetail | null>(null)
 const tab = ref<'items' | 'history' | 'attachments'>('items')
@@ -212,12 +216,6 @@ async function downloadAttachment(attachment: PurchaseAttachment) {
   URL.revokeObjectURL(url)
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(value),
-  )
-}
-
 const status = computed(() => detail.value?.purchase.status)
 </script>
 
@@ -240,9 +238,9 @@ const status = computed(() => detail.value?.purchase.status)
       </v-card-title>
 
       <v-card-subtitle class="px-6">
-        Supplier: {{ detail.purchase.supplierName }} ({{ detail.purchase.supplierCode }})
+        {{ t('purchases.detail.supplier') }}: {{ detail.purchase.supplierName }} ({{ detail.purchase.supplierCode }})
         <template v-if="detail.purchase.warehouse"> · {{ detail.purchase.warehouse.name }}</template>
-        <template v-if="detail.cancelReason"> · Cancelled: {{ detail.cancelReason }}</template>
+        <template v-if="detail.cancelReason"> · {{ t('purchases.detail.cancelled') }}: {{ detail.cancelReason }}</template>
       </v-card-subtitle>
 
       <v-card-text class="px-6">
@@ -259,7 +257,7 @@ const status = computed(() => detail.value?.purchase.status)
             :loading="busy"
             @click="action(() => purchasesApi.submit(detail!.purchase.id))"
           >
-            Submit
+            {{ t('purchases.actions.submit') }}
           </v-btn>
           <v-btn
             v-if="status?.isPendingState && can('purchasing:approve')"
@@ -268,7 +266,7 @@ const status = computed(() => detail.value?.purchase.status)
             :loading="busy"
             @click="action(() => purchasesApi.approve(detail!.purchase.id))"
           >
-            Approve
+            {{ t('purchases.actions.approve') }}
           </v-btn>
           <v-btn
             v-if="status?.isPendingState && can('purchasing:approve')"
@@ -278,7 +276,7 @@ const status = computed(() => detail.value?.purchase.status)
             :loading="busy"
             @click="action(() => purchasesApi.reject(detail!.purchase.id))"
           >
-            Reject
+            {{ t('purchases.actions.reject') }}
           </v-btn>
           <v-btn
             v-if="status?.allowsReceiving && can('purchasing:receive')"
@@ -288,7 +286,7 @@ const status = computed(() => detail.value?.purchase.status)
             prepend-icon="mdi-package-down"
             @click="openReceive"
           >
-            Receive
+            {{ t('purchases.actions.receive') }}
           </v-btn>
           <v-btn
             v-if="detail.items.some((i) => returnable(i) > 0) && can('purchasing:return')"
@@ -298,7 +296,7 @@ const status = computed(() => detail.value?.purchase.status)
             prepend-icon="mdi-package-up"
             @click="openReturn"
           >
-            Return to supplier
+            {{ t('purchases.actions.returnToSupplier') }}
           </v-btn>
           <v-btn
             v-if="!status?.isTerminal && can('purchasing:cancel')"
@@ -307,14 +305,14 @@ const status = computed(() => detail.value?.purchase.status)
             color="error"
             @click="cancelReasonId = null; cancelNote = ''; cancelOpen = true"
           >
-            Cancel purchase
+            {{ t('purchases.actions.cancelPurchase') }}
           </v-btn>
         </div>
 
         <v-tabs v-model="tab" density="compact">
-          <v-tab value="items">Items</v-tab>
-          <v-tab value="history">History</v-tab>
-          <v-tab value="attachments">Attachments ({{ attachments.length }})</v-tab>
+          <v-tab value="items">{{ t('purchases.detail.tabs.items') }}</v-tab>
+          <v-tab value="history">{{ t('purchases.detail.tabs.history') }}</v-tab>
+          <v-tab value="attachments">{{ t('purchases.detail.tabs.attachments', { count: attachments.length }) }}</v-tab>
         </v-tabs>
         <v-divider class="mb-3" />
 
@@ -323,15 +321,15 @@ const status = computed(() => detail.value?.purchase.status)
             <v-table density="compact">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th class="text-right">Qty</th>
-                  <th>Unit</th>
-                  <th class="text-right">Price</th>
-                  <th class="text-right">Total</th>
-                  <th class="text-right">Received</th>
-                  <th class="text-right">Returned</th>
-                  <th class="text-right">Remaining</th>
-                  <th>Flags</th>
+                  <th>{{ t('purchases.detail.itemsTable.product') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.qty') }}</th>
+                  <th>{{ t('purchases.detail.itemsTable.unit') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.price') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.total') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.received') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.returned') }}</th>
+                  <th class="text-right">{{ t('purchases.detail.itemsTable.remaining') }}</th>
+                  <th>{{ t('purchases.detail.itemsTable.flags') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -350,8 +348,8 @@ const status = computed(() => detail.value?.purchase.status)
                   <td class="text-right">{{ item.returnedQuantity }}</td>
                   <td class="text-right">{{ item.remainingQuantity }}</td>
                   <td>
-                    <v-chip v-if="item.requiresSerial" size="x-small" variant="tonal" class="mr-1">SN</v-chip>
-                    <v-chip v-if="item.requiresImei" size="x-small" variant="tonal">IMEI</v-chip>
+                    <v-chip v-if="item.requiresSerial" size="x-small" variant="tonal" class="mr-1">{{ t('purchases.detail.flags.sn') }}</v-chip>
+                    <v-chip v-if="item.requiresImei" size="x-small" variant="tonal">{{ t('purchases.detail.flags.imei') }}</v-chip>
                   </td>
                 </tr>
               </tbody>
@@ -359,37 +357,37 @@ const status = computed(() => detail.value?.purchase.status)
           </v-window-item>
 
           <v-window-item value="history">
-            <p v-if="receipts.length" class="text-subtitle-2 mb-1">Receipts</p>
+            <p v-if="receipts.length" class="text-subtitle-2 mb-1">{{ t('purchases.detail.receipts') }}</p>
             <v-card v-for="receipt in receipts" :key="'r' + receipt.id" variant="outlined" class="mb-2 pa-2">
               <div class="text-caption text-medium-emphasis">
-                {{ formatDate(receipt.createdAt) }} · {{ receipt.createdByEmail ?? 'system' }}
+                {{ formatDateTime(receipt.createdAt) }} · {{ receipt.createdByEmail ?? t('purchases.detail.system') }}
                 <template v-if="receipt.note"> · {{ receipt.note }}</template>
               </div>
               <div v-for="(line, li) in receipt.lines" :key="li" class="text-body-2">
-                Item #{{ line.purchaseItemId }}: {{ line.quantity }}
+                {{ t('purchases.detail.itemLine', { id: line.purchaseItemId, quantity: line.quantity }) }}
                 <span v-if="line.identifiers.length" class="text-caption text-medium-emphasis">
                   ({{ line.identifiers.map((x) => x.type + ' ' + x.value).join(', ') }})
                 </span>
               </div>
             </v-card>
 
-            <p v-if="returns.length" class="text-subtitle-2 mb-1 mt-3">Returns</p>
+            <p v-if="returns.length" class="text-subtitle-2 mb-1 mt-3">{{ t('purchases.detail.returns') }}</p>
             <v-card v-for="ret in returns" :key="'t' + ret.id" variant="outlined" class="mb-2 pa-2">
               <div class="text-caption text-medium-emphasis">
-                {{ formatDate(ret.createdAt) }} · {{ ret.createdByEmail ?? 'system' }} · {{ ret.reason }}
+                {{ formatDateTime(ret.createdAt) }} · {{ ret.createdByEmail ?? t('purchases.detail.system') }} · {{ ret.reason }}
               </div>
               <div v-for="(line, li) in ret.lines" :key="li" class="text-body-2">
-                Item #{{ line.purchaseItemId }}: {{ line.quantity }}
+                {{ t('purchases.detail.itemLine', { id: line.purchaseItemId, quantity: line.quantity }) }}
               </div>
             </v-card>
 
-            <p class="text-subtitle-2 mb-1 mt-3">Log</p>
+            <p class="text-subtitle-2 mb-1 mt-3">{{ t('purchases.detail.log') }}</p>
             <v-timeline density="compact" side="end" truncate-line="both">
               <v-timeline-item v-for="log in logs" :key="log.id" size="x-small">
                 <div class="d-flex align-center flex-wrap">
                   <v-chip size="x-small" variant="tonal" class="mr-2">{{ log.action }}</v-chip>
                   <span class="text-caption text-medium-emphasis">
-                    {{ formatDate(log.occurredAt) }}
+                    {{ formatDateTime(log.occurredAt) }}
                     <template v-if="log.actorEmail"> · {{ log.actorEmail }}</template>
                   </span>
                 </div>
@@ -409,18 +407,18 @@ const status = computed(() => detail.value?.purchase.status)
               :loading="busy"
               @click="attachmentInput?.click()"
             >
-              Add attachment
+              {{ t('purchases.detail.addAttachment') }}
             </v-btn>
             <p v-if="attachments.length === 0" class="text-body-2 text-medium-emphasis">
-              No attachments.
+              {{ t('purchases.detail.noAttachments') }}
             </p>
             <v-list density="compact">
               <v-list-item v-for="attachment in attachments" :key="attachment.id">
                 <v-list-item-title>{{ attachment.fileName }}</v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ (attachment.fileSize / 1024).toFixed(1) }} KB ·
-                  {{ attachment.uploadedByEmail ?? 'system' }} ·
-                  {{ formatDate(attachment.createdAt) }}
+                  {{ t('purchases.detail.fileSize', { size: (attachment.fileSize / 1024).toFixed(1) }) }} ·
+                  {{ attachment.uploadedByEmail ?? t('purchases.detail.system') }} ·
+                  {{ formatDateTime(attachment.createdAt) }}
                 </v-list-item-subtitle>
                 <template #append>
                   <v-btn icon="mdi-download" size="x-small" variant="text" @click="downloadAttachment(attachment)" />
@@ -440,30 +438,30 @@ const status = computed(() => detail.value?.purchase.status)
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Close</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.close') }}</v-btn>
       </v-card-actions>
     </v-card>
 
     <!-- Cancel dialog -->
     <v-dialog v-model="cancelOpen" max-width="420">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Cancel purchase</v-card-title>
+        <v-card-title class="text-h6">{{ t('purchases.actions.cancelPurchase') }}</v-card-title>
         <v-card-text>
           <v-select
             v-model="cancelReasonId"
             :items="cancelReasons.filter((r) => r.active)"
             item-title="name"
             item-value="id"
-            label="Reason *"
+            :label="t('purchases.cancel.reasonRequired')"
             class="mb-2"
           />
-          <v-textarea v-model="cancelNote" label="Note (optional)" rows="2" maxlength="500" />
+          <v-textarea v-model="cancelNote" :label="t('purchases.cancel.noteOptional')" rows="2" maxlength="500" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="cancelOpen = false">Back</v-btn>
+          <v-btn variant="text" @click="cancelOpen = false">{{ t('common.back') }}</v-btn>
           <v-btn color="error" :disabled="cancelReasonId === null" @click="confirmCancel">
-            Cancel purchase
+            {{ t('purchases.actions.cancelPurchase') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -472,19 +470,19 @@ const status = computed(() => detail.value?.purchase.status)
     <!-- Receive dialog -->
     <v-dialog v-model="receiveOpen" max-width="720">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Receive goods</v-card-title>
+        <v-card-title class="text-h6">{{ t('purchases.receiving.title') }}</v-card-title>
         <v-card-text style="max-height: 55vh; overflow-y: auto">
           <div v-for="line in receiveLines" :key="line.item.id" class="mb-4">
             <div class="d-flex align-center ga-3">
               <span class="text-body-2" style="min-width: 220px">
                 {{ line.item.productName }}
                 <span class="text-caption text-medium-emphasis">
-                  (remaining {{ line.item.remainingQuantity }})
+                  {{ t('purchases.receiving.remaining', { quantity: line.item.remainingQuantity }) }}
                 </span>
               </span>
               <v-text-field
                 v-model.number="line.quantity"
-                label="Receive qty"
+                :label="t('purchases.receiving.receiveQty')"
                 type="number"
                 min="0"
                 :max="line.item.remainingQuantity"
@@ -500,7 +498,7 @@ const status = computed(() => detail.value?.purchase.status)
                 :key="ui"
                 class="d-flex align-center ga-2 mt-2 ml-6"
               >
-                <span class="text-caption" style="min-width: 48px">Unit {{ ui + 1 }}</span>
+                <span class="text-caption" style="min-width: 48px">{{ t('purchases.receiving.unit', { number: ui + 1 }) }}</span>
                 <v-text-field
                   v-for="idType in typesFor(line.item)"
                   :key="idType.id"
@@ -513,12 +511,12 @@ const status = computed(() => detail.value?.purchase.status)
               </div>
             </template>
           </div>
-          <v-text-field v-model="receiveNote" label="Note (optional)" density="compact" />
+          <v-text-field v-model="receiveNote" :label="t('purchases.receiving.noteOptional')" density="compact" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="receiveOpen = false">Back</v-btn>
-          <v-btn color="primary" @click="confirmReceive">Receive</v-btn>
+          <v-btn variant="text" @click="receiveOpen = false">{{ t('common.back') }}</v-btn>
+          <v-btn color="primary" @click="confirmReceive">{{ t('purchases.actions.receive') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -526,9 +524,9 @@ const status = computed(() => detail.value?.purchase.status)
     <!-- Return dialog -->
     <v-dialog v-model="returnOpen" max-width="560">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Return to supplier</v-card-title>
+        <v-card-title class="text-h6">{{ t('purchases.actions.returnToSupplier') }}</v-card-title>
         <v-card-text>
-          <v-text-field v-model="returnReason" label="Reason *" maxlength="500" class="mb-2" />
+          <v-text-field v-model="returnReason" :label="t('purchases.returns.reasonRequired')" maxlength="500" class="mb-2" />
           <div
             v-for="item in detail?.items.filter((i) => returnable(i) > 0)"
             :key="item.id"
@@ -536,11 +534,11 @@ const status = computed(() => detail.value?.purchase.status)
           >
             <span class="text-body-2" style="min-width: 220px">
               {{ item.productName }}
-              <span class="text-caption text-medium-emphasis">(returnable {{ returnable(item) }})</span>
+              <span class="text-caption text-medium-emphasis">{{ t('purchases.returns.returnable', { quantity: returnable(item) }) }}</span>
             </span>
             <v-text-field
               :model-value="returnLines[item.id] ?? 0"
-              label="Return qty"
+              :label="t('purchases.returns.returnQty')"
               type="number"
               min="0"
               :max="returnable(item)"
@@ -553,8 +551,8 @@ const status = computed(() => detail.value?.purchase.status)
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="returnOpen = false">Back</v-btn>
-          <v-btn color="warning" :disabled="!returnReason.trim()" @click="confirmReturn">Return</v-btn>
+          <v-btn variant="text" @click="returnOpen = false">{{ t('common.back') }}</v-btn>
+          <v-btn color="warning" :disabled="!returnReason.trim()" @click="confirmReturn">{{ t('purchases.returns.submit') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

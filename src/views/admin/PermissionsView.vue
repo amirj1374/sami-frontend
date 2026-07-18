@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { permissionSchema } from '@/schemas/admin'
@@ -7,6 +8,7 @@ import { permissionsApi, type PermissionListParams } from '@/api/permissions'
 import { useApiError } from '@/composables/useApiError'
 import type { ModulePermissionsGroup, Permission } from '@/types/models'
 
+const { t } = useI18n()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 // --- Module options -------------------------------------------------------
@@ -45,11 +47,11 @@ const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
 const headers = [
-  { title: 'Code', key: 'code' },
-  { title: 'Name', key: 'name' },
-  { title: 'Module', key: 'module', sortable: false },
-  { title: 'Description', key: 'description', sortable: false },
-  { title: 'System', key: 'isSystem', sortable: false },
+  { title: t('permissions.code'), key: 'code' },
+  { title: t('permissions.name'), key: 'name' },
+  { title: t('permissions.module'), key: 'module', sortable: false },
+  { title: t('permissions.description'), key: 'description', sortable: false },
+  { title: t('permissions.system'), key: 'isSystem', sortable: false },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
@@ -96,7 +98,7 @@ const saving = ref(false)
 const { message: formError, set: setFormError, clear: clearFormError } = useApiError()
 
 const { handleSubmit, defineField, errors, resetForm } = useForm({
-  validationSchema: toTypedSchema(permissionSchema),
+  validationSchema: toTypedSchema(permissionSchema(t)),
   initialValues: { action: '', name: '', description: '' },
 })
 
@@ -188,7 +190,7 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Permissions</h1>
+      <h1 class="text-h4">{{ t('permissions.title') }}</h1>
       <v-spacer />
       <v-btn
         v-can="'permissions:create'"
@@ -196,7 +198,7 @@ async function confirmDelete() {
         prepend-icon="mdi-plus"
         @click="openCreate"
       >
-        New permission
+        {{ t('permissions.new') }}
       </v-btn>
     </div>
 
@@ -210,8 +212,8 @@ async function confirmDelete() {
           <v-col cols="12" sm="6">
             <v-select
               v-model="moduleFilter"
-              label="Module"
-              :items="[{ title: 'All modules', value: null }, ...moduleOptions]"
+              :label="t('permissions.module')"
+              :items="[{ title: t('permissions.allModules'), value: null }, ...moduleOptions]"
               hide-details
               density="comfortable"
             />
@@ -241,7 +243,7 @@ async function confirmDelete() {
             variant="tonal"
             prepend-icon="mdi-lock-outline"
           >
-            System
+            {{ t('permissions.system') }}
           </v-chip>
         </template>
         <template #[`item.actions`]="{ item }">
@@ -250,7 +252,7 @@ async function confirmDelete() {
             icon="mdi-pencil"
             size="small"
             variant="text"
-            title="Edit"
+            :title="t('common.edit')"
             @click="openEdit(item)"
           />
           <v-btn
@@ -260,7 +262,7 @@ async function confirmDelete() {
             size="small"
             variant="text"
             color="error"
-            title="Delete"
+            :title="t('common.delete')"
             @click="deleteTarget = item"
           />
         </template>
@@ -271,7 +273,7 @@ async function confirmDelete() {
     <v-dialog v-model="formOpen" max-width="560">
       <v-card rounded="lg">
         <v-card-title class="text-h6 pt-4 px-6">
-          {{ editing ? 'Edit permission' : 'New permission' }}
+          {{ editing ? t('permissions.edit') : t('permissions.new') }}
         </v-card-title>
 
         <v-card-text class="px-6">
@@ -284,7 +286,7 @@ async function confirmDelete() {
               v-model="moduleId"
               v-bind="moduleIdProps"
               :error-messages="errors.moduleId"
-              label="Module"
+              :label="t('permissions.module')"
               :items="moduleOptions"
               :disabled="!!editing"
             />
@@ -292,35 +294,37 @@ async function confirmDelete() {
               v-model="action"
               v-bind="actionProps"
               :error-messages="errors.action"
-              label="Action"
+              :label="t('permissions.action')"
               :disabled="!!editing"
-              :hint="editing ? 'The action cannot be changed after creation' : 'Lowercase slug, e.g. approve'"
+              :hint="editing ? t('permissions.actionImmutableHint') : t('permissions.actionHint')"
               persistent-hint
             />
             <v-text-field
               v-model="name"
               v-bind="nameProps"
               :error-messages="errors.name"
-              label="Name"
+              :label="t('permissions.name')"
             />
             <v-textarea
               v-model="description"
               v-bind="descriptionProps"
               :error-messages="errors.description"
-              label="Description"
+              :label="t('permissions.description')"
               rows="2"
               auto-grow
             />
-            <div class="text-body-2 text-medium-emphasis mt-1">
-              Code: <code>{{ codePreview }}</code>
-            </div>
+            <i18n-t keypath="permissions.codeLine" tag="div" class="text-body-2 text-medium-emphasis mt-1">
+              <template #code>
+                <code>{{ codePreview }}</code>
+              </template>
+            </i18n-t>
           </v-form>
         </v-card-text>
 
         <v-card-actions class="px-6 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="formOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="saving" @click="onSubmit">Save</v-btn>
+          <v-btn variant="text" @click="formOpen = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" :loading="saving" @click="onSubmit">{{ t('common.save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -328,15 +332,18 @@ async function confirmDelete() {
     <!-- Delete confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="420" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete permission</v-card-title>
+        <v-card-title class="text-h6">{{ t('permissions.deleteTitle') }}</v-card-title>
         <v-card-text>
-          Delete <strong><code>{{ deleteTarget?.code }}</code></strong
-          >? It is removed from every role that holds it. This cannot be undone.
+          <i18n-t keypath="permissions.deleteConfirm" tag="span">
+            <template #code>
+              <strong><code>{{ deleteTarget?.code }}</code></strong>
+            </template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="deleting" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="deleting" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

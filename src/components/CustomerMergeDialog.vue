@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { customersApi } from '@/api/customers'
 import { useApiError } from '@/composables/useApiError'
 import type { Customer } from '@/types/models'
@@ -22,6 +23,7 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+const { t } = useI18n()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const search = ref('')
 const candidates = ref<Customer[]>([])
@@ -76,22 +78,21 @@ async function merge() {
 <template>
   <v-dialog v-model="open" max-width="560">
     <v-card rounded="lg">
-      <v-card-title class="text-h6 pt-4 px-6">Merge customer</v-card-title>
+      <v-card-title class="text-h6 pt-4 px-6">{{ t('customers.merge.title') }}</v-card-title>
 
       <v-card-text class="px-6">
         <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4">
           {{ errorMessage }}
         </v-alert>
 
-        <p class="text-body-2 mb-4">
-          Merge <strong>{{ source?.displayName }}</strong> ({{ source?.customerCode }}) into another
-          record. Contacts, addresses, tags, notes and the full timeline move to the surviving
-          customer; the merged record is kept for reference and never loses its transactions.
-        </p>
+        <i18n-t keypath="customers.merge.body" tag="p" class="text-body-2 mb-4">
+          <template #name><strong>{{ source?.displayName }}</strong></template>
+          <template #code>{{ source?.customerCode }}</template>
+        </i18n-t>
 
         <v-text-field
           v-model="search"
-          label="Search the surviving customer"
+          :label="t('customers.merge.searchLabel')"
           prepend-inner-icon="mdi-magnify"
           :loading="searching"
           clearable
@@ -115,14 +116,17 @@ async function merge() {
         </v-list>
 
         <v-alert v-if="target" type="info" variant="tonal" density="compact">
-          Surviving record: <strong>{{ target.displayName }}</strong> ({{ target.customerCode }})
+          <i18n-t keypath="customers.merge.survivingRecord" tag="span">
+            <template #name><strong>{{ target.displayName }}</strong></template>
+            <template #code>{{ target.customerCode }}</template>
+          </i18n-t>
         </v-alert>
       </v-card-text>
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Cancel</v-btn>
-        <v-btn color="primary" :disabled="!target" :loading="merging" @click="merge">Merge</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
+        <v-btn color="primary" :disabled="!target" :loading="merging" @click="merge">{{ t('customers.merge.confirm') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

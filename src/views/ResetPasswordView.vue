@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { authApi } from '@/api/auth'
 import { useApiError } from '@/composables/useApiError'
 import { resetPasswordSchema } from '@/schemas/auth'
 
+const { t } = useI18n()
 const route = useRoute()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const loading = ref(false)
@@ -18,7 +20,7 @@ const token = computed(() =>
 )
 
 const { handleSubmit, defineField, errors } = useForm({
-  validationSchema: toTypedSchema(resetPasswordSchema),
+  validationSchema: toTypedSchema(resetPasswordSchema(t)),
   initialValues: { newPassword: '', confirmPassword: '' },
 })
 const [newPassword, newPasswordProps] = defineField('newPassword')
@@ -41,16 +43,16 @@ const onSubmit = handleSubmit(async (values) => {
 
 <template>
   <v-card elevation="4" rounded="lg">
-    <v-card-title class="text-h5 pt-6 px-6">Reset password</v-card-title>
-    <v-card-subtitle class="px-6">Choose a new password for your account</v-card-subtitle>
+    <v-card-title class="text-h5 pt-6 px-6">{{ t('auth.resetTitle') }}</v-card-title>
+    <v-card-subtitle class="px-6">{{ t('auth.resetSubtitle') }}</v-card-subtitle>
 
     <v-card-text class="px-6">
       <v-alert v-if="!token" type="warning" variant="tonal" density="compact" class="mb-4">
-        This reset link is invalid or incomplete. Request a new one below.
+        {{ t('auth.resetInvalidLink') }}
       </v-alert>
 
       <v-alert v-else-if="done" type="success" variant="tonal" density="compact" class="mb-4">
-        Your password has been reset. You can now sign in with the new password.
+        {{ t('auth.resetDone') }}
       </v-alert>
 
       <template v-else>
@@ -63,7 +65,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-model="newPassword"
             v-bind="newPasswordProps"
             :error-messages="errors.newPassword"
-            label="New password"
+            :label="t('auth.newPassword')"
             type="password"
             autocomplete="new-password"
             prepend-inner-icon="mdi-lock-plus-outline"
@@ -72,14 +74,14 @@ const onSubmit = handleSubmit(async (values) => {
             v-model="confirmPassword"
             v-bind="confirmPasswordProps"
             :error-messages="errors.confirmPassword"
-            label="Confirm new password"
+            :label="t('auth.confirmNewPassword')"
             type="password"
             autocomplete="new-password"
             prepend-inner-icon="mdi-lock-check-outline"
           />
 
           <v-btn type="submit" color="primary" block size="large" :loading="loading" class="mt-2">
-            Reset password
+            {{ t('auth.resetButton') }}
           </v-btn>
         </v-form>
       </template>
@@ -87,10 +89,10 @@ const onSubmit = handleSubmit(async (values) => {
 
     <v-card-actions class="justify-center pb-6">
       <v-btn v-if="!token" variant="text" :to="{ name: 'forgot-password' }" color="primary">
-        Request a new link
+        {{ t('auth.requestNewLink') }}
       </v-btn>
       <v-btn v-else variant="text" :to="{ name: 'login' }" color="primary">
-        {{ done ? 'Sign in' : 'Back to sign in' }}
+        {{ done ? t('auth.signInButton') : t('auth.backToSignIn') }}
       </v-btn>
     </v-card-actions>
   </v-card>

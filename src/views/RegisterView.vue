@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useAuthStore } from '@/stores/auth'
 import { useApiError } from '@/composables/useApiError'
 import { registerSchema } from '@/schemas/auth'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const loading = ref(false)
 
 const { handleSubmit, defineField, errors } = useForm({
-  validationSchema: toTypedSchema(registerSchema),
+  validationSchema: toTypedSchema(registerSchema(t)),
   initialValues: { fullName: '', email: '', password: '' },
 })
 const [fullName, fullNameProps] = defineField('fullName')
@@ -36,8 +38,8 @@ const onSubmit = handleSubmit(async (values) => {
 
 <template>
   <v-card elevation="4" rounded="lg">
-    <v-card-title class="text-h5 pt-6 px-6">Create account</v-card-title>
-    <v-card-subtitle class="px-6">Get started with Sami</v-card-subtitle>
+    <v-card-title class="text-h5 pt-6 px-6">{{ t('auth.registerTitle') }}</v-card-title>
+    <v-card-subtitle class="px-6">{{ t('auth.registerSubtitle') }}</v-card-subtitle>
 
     <v-card-text class="px-6">
       <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4">
@@ -49,7 +51,7 @@ const onSubmit = handleSubmit(async (values) => {
           v-model="fullName"
           v-bind="fullNameProps"
           :error-messages="errors.fullName"
-          label="Full name"
+          :label="t('auth.fullName')"
           autocomplete="name"
           prepend-inner-icon="mdi-account-outline"
         />
@@ -57,7 +59,7 @@ const onSubmit = handleSubmit(async (values) => {
           v-model="email"
           v-bind="emailProps"
           :error-messages="errors.email"
-          label="Email"
+          :label="t('auth.email')"
           type="email"
           autocomplete="email"
           prepend-inner-icon="mdi-email-outline"
@@ -66,21 +68,21 @@ const onSubmit = handleSubmit(async (values) => {
           v-model="password"
           v-bind="passwordProps"
           :error-messages="errors.password"
-          label="Password"
+          :label="t('auth.password')"
           type="password"
           autocomplete="new-password"
           prepend-inner-icon="mdi-lock-outline"
         />
 
         <v-btn type="submit" color="primary" block size="large" :loading="loading" class="mt-2">
-          Create account
+          {{ t('auth.registerButton') }}
         </v-btn>
       </v-form>
     </v-card-text>
 
     <v-card-actions class="justify-center pb-6">
-      <span class="text-body-2">Already have an account?</span>
-      <v-btn variant="text" :to="{ name: 'login' }" color="primary">Sign in</v-btn>
+      <span class="text-body-2">{{ t('auth.alreadyHaveAccount') }}</span>
+      <v-btn variant="text" :to="{ name: 'login' }" color="primary">{{ t('auth.signInButton') }}</v-btn>
     </v-card-actions>
   </v-card>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { usersApi, type RoleOption } from '@/api/users'
@@ -29,6 +30,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: [] }>()
 
+const { t } = useI18n()
+
 const open = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -46,7 +49,7 @@ const selectableStatuses = computed(() =>
 
 // --- Account fields (VeeValidate + Zod) ------------------------------------
 const { handleSubmit, defineField, errors, resetForm, setFieldError } = useForm({
-  validationSchema: toTypedSchema(userFormSchema),
+  validationSchema: toTypedSchema(userFormSchema(t)),
 })
 
 const [email, emailProps] = defineField('email')
@@ -96,11 +99,11 @@ const submit = handleSubmit(async (values) => {
   // Create-mode presence checks (format is covered by the schema).
   if (!isEdit.value) {
     if (!values.email) {
-      setFieldError('email', 'Email is required')
+      setFieldError('email', t('users.emailRequired'))
       return
     }
     if (!values.password) {
-      setFieldError('password', 'Password is required')
+      setFieldError('password', t('users.passwordRequired'))
       return
     }
   }
@@ -190,19 +193,24 @@ async function removeAvatar() {
   }
 }
 
-const genderItems = ['male', 'female', 'other', 'unspecified']
+const genderItems = computed(() => [
+  { title: t('users.genderMale'), value: 'male' },
+  { title: t('users.genderFemale'), value: 'female' },
+  { title: t('users.genderOther'), value: 'other' },
+  { title: t('users.genderUnspecified'), value: 'unspecified' },
+])
 </script>
 
 <template>
   <v-dialog v-model="open" max-width="720">
     <v-card rounded="lg">
       <v-card-title class="text-h6 pt-4 px-6">
-        {{ isEdit ? 'Edit user' : 'New user' }}
+        {{ isEdit ? t('users.editUser') : t('users.newUser') }}
       </v-card-title>
 
       <v-tabs v-model="tab" class="px-4">
-        <v-tab value="account">Account</v-tab>
-        <v-tab value="profile">Profile</v-tab>
+        <v-tab value="account">{{ t('users.tabAccount') }}</v-tab>
+        <v-tab value="profile">{{ t('users.tabProfile') }}</v-tab>
       </v-tabs>
       <v-divider />
 
@@ -219,15 +227,15 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                 v-model="email"
                 v-bind="emailProps"
                 :error-messages="errors.email"
-                label="Email"
+                :label="t('users.headerEmail')"
                 type="email"
               />
               <v-text-field
                 v-else
                 :model-value="user?.user.email"
-                label="Email"
+                :label="t('users.headerEmail')"
                 disabled
-                hint="Email cannot be changed after creation"
+                :hint="t('users.emailHint')"
                 persistent-hint
                 class="mb-2"
               />
@@ -235,21 +243,21 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                 v-model="fullName"
                 v-bind="fullNameProps"
                 :error-messages="errors.fullName"
-                label="Full name"
+                :label="t('users.fullNameLabel')"
               />
               <v-text-field
                 v-if="!isEdit"
                 v-model="password"
                 v-bind="passwordProps"
                 :error-messages="errors.password"
-                label="Password"
+                :label="t('users.passwordLabel')"
                 type="password"
               />
               <v-select
                 v-model="roleId"
                 v-bind="roleIdProps"
                 :error-messages="errors.roleId"
-                label="Role"
+                :label="t('users.headerRole')"
                 :items="roleOptions"
                 item-title="name"
                 item-value="id"
@@ -258,11 +266,11 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                 v-model="statusId"
                 v-bind="statusIdProps"
                 :error-messages="errors.statusId"
-                label="Status"
+                :label="t('users.headerStatus')"
                 :items="selectableStatuses"
                 item-title="name"
                 item-value="id"
-                hint="Archive and delete are separate actions on the user list"
+                :hint="t('users.statusHint')"
                 persistent-hint
               />
             </v-window-item>
@@ -275,7 +283,7 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                 </v-avatar>
                 <v-file-input
                   v-model="avatarFile"
-                  label="Profile image"
+                  :label="t('users.profileImage')"
                   accept="image/jpeg,image/png,image/webp"
                   density="comfortable"
                   hide-details
@@ -290,7 +298,7 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                   class="mr-1"
                   @click="uploadAvatar"
                 >
-                  Upload
+                  {{ t('users.upload') }}
                 </v-btn>
                 <v-btn
                   size="small"
@@ -298,54 +306,54 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
                   :loading="avatarBusy"
                   @click="removeAvatar"
                 >
-                  Remove
+                  {{ t('common.remove') }}
                 </v-btn>
               </div>
               <p v-else class="text-body-2 text-medium-emphasis mb-4">
-                The profile image can be uploaded after the user is created.
+                {{ t('users.avatarCreateHint') }}
               </p>
 
               <v-row dense>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.firstName" label="First name" maxlength="80" />
+                  <v-text-field v-model="profile.firstName" :label="t('users.firstName')" maxlength="80" />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.lastName" label="Last name" maxlength="80" />
+                  <v-text-field v-model="profile.lastName" :label="t('users.lastName')" maxlength="80" />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.displayName" label="Display name" maxlength="160" />
+                  <v-text-field v-model="profile.displayName" :label="t('users.displayName')" maxlength="160" />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-select v-model="profile.gender" label="Gender" :items="genderItems" clearable />
+                  <v-select v-model="profile.gender" :label="t('users.genderLabel')" :items="genderItems" clearable />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.phoneNumber" label="Phone number" maxlength="32" />
+                  <v-text-field v-model="profile.phoneNumber" :label="t('users.phoneNumber')" maxlength="32" />
                 </v-col>
                 <v-col cols="12" sm="6">
                   <v-text-field
                     v-model="profile.birthDate"
-                    label="Birth date"
+                    :label="t('users.birthDate')"
                     type="date"
                     clearable
                   />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.employeeCode" label="Employee code" maxlength="32" />
+                  <v-text-field v-model="profile.employeeCode" :label="t('users.employeeCode')" maxlength="32" />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="profile.nationalCode" label="National code" maxlength="32" />
+                  <v-text-field v-model="profile.nationalCode" :label="t('users.nationalCode')" maxlength="32" />
                 </v-col>
                 <v-col cols="12">
-                  <v-text-field v-model="profile.address" label="Address" maxlength="500" />
+                  <v-text-field v-model="profile.address" :label="t('users.address')" maxlength="500" />
                 </v-col>
                 <v-col cols="12">
-                  <v-textarea v-model="profile.notes" label="Notes" rows="2" maxlength="2000" />
+                  <v-textarea v-model="profile.notes" :label="t('users.notes')" rows="2" maxlength="2000" />
                 </v-col>
               </v-row>
 
               <template v-if="fieldDefs.length">
                 <v-divider class="mb-4" />
-                <p class="text-subtitle-2 mb-3">Additional fields</p>
+                <p class="text-subtitle-2 mb-3">{{ t('users.additionalFields') }}</p>
                 <v-row dense>
                   <v-col v-for="def in fieldDefs" :key="def.id" cols="12" sm="6">
                     <v-select
@@ -378,8 +386,8 @@ const genderItems = ['male', 'female', 'other', 'unspecified']
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Cancel</v-btn>
-        <v-btn color="primary" :loading="saving" @click="submit">Save</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
+        <v-btn color="primary" :loading="saving" @click="submit">{{ t('common.save') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

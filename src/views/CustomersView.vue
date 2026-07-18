@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { customersApi, type CustomerListParams } from '@/api/customers'
 import { crmConfigApi } from '@/api/crmConfig'
 import { usePermission } from '@/composables/usePermission'
 import { useApiError } from '@/composables/useApiError'
+import { useFormat } from '@/composables/useFormat'
 import CustomerFormDialog from '@/components/CustomerFormDialog.vue'
 import CustomerProfileDialog from '@/components/CustomerProfileDialog.vue'
 import CustomerMergeDialog from '@/components/CustomerMergeDialog.vue'
@@ -20,6 +22,8 @@ import type {
   PreferenceDefinition,
 } from '@/types/models'
 
+const { t } = useI18n()
+const { formatDate } = useFormat()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
@@ -63,15 +67,15 @@ const totalItems = ref(0)
 const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
-const headers = [
-  { title: 'Code', key: 'customerCode' },
-  { title: 'Name', key: 'displayName' },
-  { title: 'Type', key: 'type', sortable: false },
-  { title: 'Status', key: 'status', sortable: false },
-  { title: 'Tags', key: 'tags', sortable: false },
-  { title: 'Created', key: 'createdAt' },
+const headers = computed(() => [
+  { title: t('customers.headers.code'), key: 'customerCode' },
+  { title: t('customers.headers.name'), key: 'displayName' },
+  { title: t('customers.headers.type'), key: 'type', sortable: false },
+  { title: t('customers.headers.status'), key: 'status', sortable: false },
+  { title: t('customers.headers.tags'), key: 'tags', sortable: false },
+  { title: t('customers.headers.created'), key: 'createdAt' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
-]
+])
 
 // --- Filters ----------------------------------------------------------------
 const searchFilter = ref('')
@@ -128,15 +132,15 @@ const reload = useDebounceFn(() => {
 watch([searchFilter, statusFilter, typeFilter, sourceFilter, tagFilter, cityFilter, includeHidden], reload)
 
 const statusItems = computed(() => [
-  { title: 'All statuses', value: null as number | null },
+  { title: t('customers.filters.allStatuses'), value: null as number | null },
   ...statuses.value.map((s) => ({ title: s.name, value: s.id as number | null })),
 ])
 const typeItems = computed(() => [
-  { title: 'All types', value: null as number | null },
-  ...types.value.map((t) => ({ title: t.name, value: t.id as number | null })),
+  { title: t('customers.filters.allTypes'), value: null as number | null },
+  ...types.value.map((ct) => ({ title: ct.name, value: ct.id as number | null })),
 ])
 const sourceItems = computed(() => [
-  { title: 'All sources', value: null as number | null },
+  { title: t('customers.filters.allSources'), value: null as number | null },
   ...sources.value.map((s) => ({ title: s.name, value: s.id as number | null })),
 ])
 
@@ -299,16 +303,12 @@ function statusColor(status: CustomerStatus): string {
   if (status.isBlocking) return 'error'
   return 'success'
 }
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
-}
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Customers</h1>
+      <h1 class="text-h4">{{ t('customers.title') }}</h1>
       <v-spacer />
       <input
         ref="importInput"
@@ -325,7 +325,7 @@ function formatDate(value: string): string {
         :loading="importing"
         @click="importInput?.click()"
       >
-        Import CSV
+        {{ t('customers.actions.importCsv') }}
       </v-btn>
       <v-btn
         v-can="'customers:export'"
@@ -335,10 +335,10 @@ function formatDate(value: string): string {
         :loading="exporting"
         @click="exportCsv"
       >
-        Export CSV
+        {{ t('customers.actions.exportCsv') }}
       </v-btn>
       <v-btn v-can="'customers:create'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New customer
+        {{ t('customers.actions.newCustomer') }}
       </v-btn>
     </div>
 
@@ -352,7 +352,7 @@ function formatDate(value: string): string {
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="searchFilter"
-              label="Search name, code, phone, email, national code…"
+              :label="t('customers.filters.searchPlaceholder')"
               prepend-inner-icon="mdi-magnify"
               clearable
               hide-details
@@ -360,21 +360,21 @@ function formatDate(value: string): string {
             />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="statusFilter" label="Status" :items="statusItems" hide-details density="comfortable" />
+            <v-select v-model="statusFilter" :label="t('customers.filters.status')" :items="statusItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="typeFilter" label="Type" :items="typeItems" hide-details density="comfortable" />
+            <v-select v-model="typeFilter" :label="t('customers.filters.type')" :items="typeItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="sourceFilter" label="Source" :items="sourceItems" hide-details density="comfortable" />
+            <v-select v-model="sourceFilter" :label="t('customers.filters.source')" :items="sourceItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-text-field v-model="cityFilter" label="City" hide-details density="comfortable" clearable />
+            <v-text-field v-model="cityFilter" :label="t('customers.filters.city')" hide-details density="comfortable" clearable />
           </v-col>
           <v-col cols="12" sm="4">
             <v-autocomplete
               v-model="tagFilter"
-              label="Tags"
+              :label="t('customers.filters.tags')"
               :items="tags"
               item-title="name"
               item-value="id"
@@ -388,7 +388,7 @@ function formatDate(value: string): string {
           <v-col cols="12" sm="3">
             <v-switch
               v-model="includeHidden"
-              label="Archived & deleted"
+              :label="t('customers.filters.includeHidden')"
               color="primary"
               hide-details
               density="compact"
@@ -462,44 +462,44 @@ function formatDate(value: string): string {
               <v-list-item
                 v-if="can('customers:merge')"
                 prepend-icon="mdi-account-convert"
-                title="Merge into…"
+                :title="t('customers.menu.merge')"
                 @click="openMerge(item)"
               />
               <v-list-item
                 v-if="can('customers:edit') && !item.status.isBlacklistState && !item.status.isDeletedState"
                 prepend-icon="mdi-account-cancel"
-                title="Blacklist…"
+                :title="t('customers.menu.blacklist')"
                 @click="openBlacklist(item)"
               />
               <v-list-item
                 v-if="can('customers:edit') && item.status.isBlacklistState"
                 prepend-icon="mdi-account-check"
-                title="Lift blacklist"
+                :title="t('customers.menu.liftBlacklist')"
                 @click="rowAction(item, () => customersApi.unblacklist(item.id))"
               />
               <v-list-item
                 v-if="can('customers:archive') && !item.status.isArchivedState && !item.status.isDeletedState"
                 prepend-icon="mdi-archive"
-                title="Archive"
+                :title="t('customers.menu.archive')"
                 @click="rowAction(item, () => customersApi.archive(item.id))"
               />
               <v-list-item
                 v-if="can('customers:restore') && (item.status.isArchivedState || item.status.isDeletedState)"
                 prepend-icon="mdi-restore"
-                title="Restore"
+                :title="t('customers.menu.restore')"
                 @click="rowAction(item, () => customersApi.restore(item.id))"
               />
               <v-list-item
                 v-if="can('customers:delete') && !item.status.isDeletedState"
                 prepend-icon="mdi-delete"
-                title="Delete (soft)"
+                :title="t('customers.menu.softDelete')"
                 @click="deleteTarget = item"
               />
               <v-list-item
                 v-if="can('customers:purge') && item.status.isDeletedState"
                 prepend-icon="mdi-delete-forever"
                 base-color="error"
-                title="Delete permanently"
+                :title="t('customers.menu.deletePermanently')"
                 @click="purgeTarget = item"
               />
             </v-list>
@@ -522,33 +522,32 @@ function formatDate(value: string): string {
     <!-- Blacklist dialog -->
     <v-dialog :model-value="!!blacklistTarget" max-width="440" @update:model-value="blacklistTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Blacklist customer</v-card-title>
+        <v-card-title class="text-h6">{{ t('customers.blacklist.title') }}</v-card-title>
         <v-card-text>
-          <p class="text-body-2 mb-4">
-            Blacklist <strong>{{ blacklistTarget?.displayName }}</strong>
-            ({{ blacklistTarget?.customerCode }})? The customer stays searchable; business modules
-            decide how to react to blocked customers.
-          </p>
+          <i18n-t keypath="customers.blacklist.body" tag="p" class="text-body-2 mb-4">
+            <template #name><strong>{{ blacklistTarget?.displayName }}</strong></template>
+            <template #code>{{ blacklistTarget?.customerCode }}</template>
+          </i18n-t>
           <v-select
             v-model="blacklistReasonId"
             :items="blacklistReasons.filter((r) => r.active)"
             item-title="name"
             item-value="id"
-            label="Reason *"
+            :label="t('customers.blacklist.reason')"
             class="mb-2"
           />
-          <v-textarea v-model="blacklistNote" label="Note (optional)" rows="2" maxlength="500" />
+          <v-textarea v-model="blacklistNote" :label="t('customers.blacklist.note')" rows="2" maxlength="500" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="blacklistTarget = null">Cancel</v-btn>
+          <v-btn variant="text" @click="blacklistTarget = null">{{ t('common.cancel') }}</v-btn>
           <v-btn
             color="error"
             :disabled="blacklistReasonId === null"
             :loading="blacklistBusy"
             @click="confirmBlacklist"
           >
-            Blacklist
+            {{ t('customers.blacklist.confirm') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -557,23 +556,23 @@ function formatDate(value: string): string {
     <!-- Import result dialog -->
     <v-dialog :model-value="!!importResult" max-width="520" @update:model-value="importResult = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Import finished</v-card-title>
+        <v-card-title class="text-h6">{{ t('customers.import.title') }}</v-card-title>
         <v-card-text>
-          <p class="text-body-1 mb-3">
-            <strong>{{ importResult?.created }}</strong> customers created,
-            <strong>{{ importResult?.skipped.length }}</strong> rows skipped.
-          </p>
+          <i18n-t keypath="customers.import.summary" tag="p" class="text-body-1 mb-3">
+            <template #created><strong>{{ importResult?.created }}</strong></template>
+            <template #skipped><strong>{{ importResult?.skipped.length }}</strong></template>
+          </i18n-t>
           <v-list v-if="importResult?.skipped.length" density="compact" class="border rounded" max-height="240" style="overflow-y: auto">
             <v-list-item v-for="row in importResult.skipped" :key="row.line">
               <v-list-item-title class="text-body-2">
-                Line {{ row.line }}: {{ row.reason }}
+                {{ t('customers.import.skippedRow', { line: row.line, reason: row.reason }) }}
               </v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="importResult = null">Close</v-btn>
+          <v-btn variant="text" @click="importResult = null">{{ t('common.close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -585,16 +584,17 @@ function formatDate(value: string): string {
     <!-- Soft delete confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="440" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete customer</v-card-title>
+        <v-card-title class="text-h6">{{ t('customers.delete.title') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.displayName }}</strong> ({{ deleteTarget?.customerCode }})?
-          The record is soft-deleted: hidden from listings but fully restorable, and all history is
-          preserved.
+          <i18n-t keypath="customers.delete.body" tag="span">
+            <template #name><strong>{{ deleteTarget?.displayName }}</strong></template>
+            <template #code>{{ deleteTarget?.customerCode }}</template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -602,16 +602,18 @@ function formatDate(value: string): string {
     <!-- Permanent delete confirmation -->
     <v-dialog :model-value="!!purgeTarget" max-width="440" @update:model-value="purgeTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete permanently</v-card-title>
+        <v-card-title class="text-h6">{{ t('customers.purge.title') }}</v-card-title>
         <v-card-text>
-          Permanently remove <strong>{{ purgeTarget?.displayName }}</strong>
-          ({{ purgeTarget?.customerCode }})? <strong>This cannot be undone.</strong> Records that
-          took part in a merge are protected and cannot be removed.
+          <i18n-t keypath="customers.purge.body" tag="span">
+            <template #name><strong>{{ purgeTarget?.displayName }}</strong></template>
+            <template #code>{{ purgeTarget?.customerCode }}</template>
+            <template #warning><strong>{{ t('customers.purge.warning') }}</strong></template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="purgeTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmPurge">Delete forever</v-btn>
+          <v-btn variant="text" @click="purgeTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmPurge">{{ t('customers.purge.confirm') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

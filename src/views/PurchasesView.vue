@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { purchasesApi, purchasingConfigApi, type PurchaseListParams } from '@/api/purchases'
 import { usePermission } from '@/composables/usePermission'
 import { useApiError } from '@/composables/useApiError'
+import { useFormat } from '@/composables/useFormat'
 import PurchaseFormDialog from '@/components/PurchaseFormDialog.vue'
 import PurchaseDetailDialog from '@/components/PurchaseDetailDialog.vue'
 import type {
@@ -16,8 +18,10 @@ import type {
   PurchaseRow,
 } from '@/types/models'
 
+const { t } = useI18n()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
+const { formatDate } = useFormat()
 
 // --- Reference data ---------------------------------------------------------
 const statuses = ref<PurStatus[]>([])
@@ -57,15 +61,15 @@ const totalItems = ref(0)
 const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
-const headers = [
-  { title: 'Number', key: 'purchaseNumber' },
-  { title: 'Supplier', key: 'supplier', sortable: false },
-  { title: 'Type', key: 'type', sortable: false },
-  { title: 'Status', key: 'status', sortable: false },
-  { title: 'Total', key: 'totalAmount', align: 'end' as const },
-  { title: 'Created', key: 'createdAt' },
+const headers = computed(() => [
+  { title: t('purchases.headers.number'), key: 'purchaseNumber' },
+  { title: t('purchases.headers.supplier'), key: 'supplier', sortable: false },
+  { title: t('purchases.headers.type'), key: 'type', sortable: false },
+  { title: t('purchases.headers.status'), key: 'status', sortable: false },
+  { title: t('purchases.headers.total'), key: 'totalAmount', align: 'end' as const },
+  { title: t('purchases.headers.created'), key: 'createdAt' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
-]
+])
 
 // --- Filters ----------------------------------------------------------------
 const searchFilter = ref('')
@@ -76,15 +80,15 @@ const fromFilter = ref('')
 const toFilter = ref('')
 
 const statusItems = computed(() => [
-  { title: 'All statuses', value: null as number | null },
+  { title: t('purchases.filters.allStatuses'), value: null as number | null },
   ...statuses.value.map((s) => ({ title: s.name, value: s.id as number | null })),
 ])
 const typeItems = computed(() => [
-  { title: 'All types', value: null as number | null },
-  ...types.value.map((t) => ({ title: t.name, value: t.id as number | null })),
+  { title: t('purchases.filters.allTypes'), value: null as number | null },
+  ...types.value.map((ty) => ({ title: ty.name, value: ty.id as number | null })),
 ])
 const warehouseItems = computed(() => [
-  { title: 'All warehouses', value: null as number | null },
+  { title: t('purchases.filters.allWarehouses'), value: null as number | null },
   ...warehouses.value.map((w) => ({ title: w.name, value: w.id as number | null })),
 ])
 
@@ -175,19 +179,15 @@ function statusColor(status: PurStatus): string {
   if (status.isDraftState) return 'default'
   return 'info'
 }
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
-}
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Purchasing</h1>
+      <h1 class="text-h4">{{ t('purchases.title') }}</h1>
       <v-spacer />
       <v-btn v-can="'purchasing:create'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New purchase
+        {{ t('purchases.newPurchase') }}
       </v-btn>
     </div>
 
@@ -201,7 +201,7 @@ function formatDate(value: string): string {
           <v-col cols="12" sm="3">
             <v-text-field
               v-model="searchFilter"
-              label="Search number, supplier, notes…"
+              :label="t('purchases.filters.searchPlaceholder')"
               prepend-inner-icon="mdi-magnify"
               clearable
               hide-details
@@ -209,19 +209,19 @@ function formatDate(value: string): string {
             />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="statusFilter" label="Status" :items="statusItems" hide-details density="comfortable" />
+            <v-select v-model="statusFilter" :label="t('purchases.headers.status')" :items="statusItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="typeFilter" label="Type" :items="typeItems" hide-details density="comfortable" />
+            <v-select v-model="typeFilter" :label="t('purchases.headers.type')" :items="typeItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-select v-model="warehouseFilter" label="Warehouse" :items="warehouseItems" hide-details density="comfortable" />
+            <v-select v-model="warehouseFilter" :label="t('purchases.filters.warehouse')" :items="warehouseItems" hide-details density="comfortable" />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-text-field v-model="fromFilter" label="From" type="date" hide-details density="comfortable" clearable />
+            <v-text-field v-model="fromFilter" :label="t('purchases.filters.from')" type="date" hide-details density="comfortable" clearable />
           </v-col>
           <v-col cols="6" sm="2">
-            <v-text-field v-model="toFilter" label="To" type="date" hide-details density="comfortable" clearable />
+            <v-text-field v-model="toFilter" :label="t('purchases.filters.to')" type="date" hide-details density="comfortable" clearable />
           </v-col>
         </v-row>
       </v-card-text>
@@ -294,15 +294,16 @@ function formatDate(value: string): string {
     <!-- Delete draft confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="420" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete draft</v-card-title>
+        <v-card-title class="text-h6">{{ t('purchases.delete.title') }}</v-card-title>
         <v-card-text>
-          Delete draft <strong>{{ deleteTarget?.purchaseNumber }}</strong>? Drafts affect nothing
-          and can be safely removed.
+          <i18n-t keypath="purchases.delete.body" tag="span">
+            <template #number><strong>{{ deleteTarget?.purchaseNumber }}</strong></template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="deleting" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="deleting" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

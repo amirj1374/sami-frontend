@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { moduleSchema } from '@/schemas/admin'
@@ -8,6 +9,7 @@ import { useApiError } from '@/composables/useApiError'
 import type { PageQuery } from '@/types/api'
 import type { AppModule } from '@/types/models'
 
+const { t } = useI18n()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 // --- Table state ----------------------------------------------------------
@@ -27,12 +29,12 @@ const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
 const headers = [
-  { title: 'Order', key: 'displayOrder', align: 'end' as const },
-  { title: 'Name', key: 'name' },
-  { title: 'Code', key: 'code' },
-  { title: 'Path', key: 'path', sortable: false },
-  { title: 'Permissions', key: 'permissionCount', sortable: false, align: 'end' as const },
-  { title: 'Enabled', key: 'enabled', sortable: false },
+  { title: t('modules.order'), key: 'displayOrder', align: 'end' as const },
+  { title: t('modules.name'), key: 'name' },
+  { title: t('modules.code'), key: 'code' },
+  { title: t('modules.path'), key: 'path', sortable: false },
+  { title: t('modules.permissions'), key: 'permissionCount', sortable: false, align: 'end' as const },
+  { title: t('modules.enabled'), key: 'enabled', sortable: false },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
@@ -87,7 +89,7 @@ const saving = ref(false)
 const { message: formError, set: setFormError, clear: clearFormError } = useApiError()
 
 const { handleSubmit, defineField, errors, resetForm } = useForm({
-  validationSchema: toTypedSchema(moduleSchema),
+  validationSchema: toTypedSchema(moduleSchema(t)),
   initialValues: {
     code: '',
     name: '',
@@ -209,10 +211,10 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Modules</h1>
+      <h1 class="text-h4">{{ t('modules.title') }}</h1>
       <v-spacer />
       <v-btn v-can="'modules:create'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New module
+        {{ t('modules.new') }}
       </v-btn>
     </div>
 
@@ -232,7 +234,7 @@ async function confirmDelete() {
         <template #[`item.name`]="{ item }">
           <v-icon :icon="item.icon" size="small" class="mr-2" />
           {{ item.name }}
-          <v-chip v-if="item.isSystem" size="small" variant="tonal" class="ml-2">System</v-chip>
+          <v-chip v-if="item.isSystem" size="small" variant="tonal" class="ml-2">{{ t('modules.system') }}</v-chip>
         </template>
         <template #[`item.code`]="{ item }">
           <code>{{ item.code }}</code>
@@ -259,7 +261,7 @@ async function confirmDelete() {
             icon="mdi-pencil"
             size="small"
             variant="text"
-            title="Edit"
+            :title="t('common.edit')"
             @click="openEdit(item)"
           />
           <v-btn
@@ -268,7 +270,7 @@ async function confirmDelete() {
             size="small"
             variant="text"
             color="error"
-            title="Delete"
+            :title="t('common.delete')"
             :disabled="item.isSystem"
             @click="deleteTarget = item"
           />
@@ -280,7 +282,7 @@ async function confirmDelete() {
     <v-dialog v-model="formOpen" max-width="560">
       <v-card rounded="lg">
         <v-card-title class="text-h6 pt-4 px-6">
-          {{ editing ? 'Edit module' : 'New module' }}
+          {{ editing ? t('modules.edit') : t('modules.new') }}
         </v-card-title>
 
         <v-card-text class="px-6">
@@ -294,21 +296,21 @@ async function confirmDelete() {
               v-model="code"
               v-bind="codeProps"
               :error-messages="errors.code"
-              label="Code"
-              hint="Lowercase slug used as the permission-code prefix; cannot be changed later"
+              :label="t('modules.code')"
+              :hint="t('modules.codeHint')"
               persistent-hint
             />
             <v-text-field
               v-model="name"
               v-bind="nameProps"
               :error-messages="errors.name"
-              label="Name"
+              :label="t('modules.name')"
             />
             <v-textarea
               v-model="description"
               v-bind="descriptionProps"
               :error-messages="errors.description"
-              label="Description"
+              :label="t('modules.description')"
               rows="2"
               auto-grow
             />
@@ -316,9 +318,9 @@ async function confirmDelete() {
               v-model="icon"
               v-bind="iconProps"
               :error-messages="errors.icon"
-              label="Icon"
+              :label="t('modules.icon')"
               :prepend-inner-icon="iconPreview"
-              hint="Material Design Icons name, e.g. mdi-package-variant"
+              :hint="t('modules.iconHint')"
               persistent-hint
             />
             <v-row>
@@ -327,8 +329,8 @@ async function confirmDelete() {
                   v-model="path"
                   v-bind="pathProps"
                   :error-messages="errors.path"
-                  label="Path"
-                  hint="Frontend route path, e.g. /invoices"
+                  :label="t('modules.path')"
+                  :hint="t('modules.pathHint')"
                   persistent-hint
                 />
               </v-col>
@@ -337,7 +339,7 @@ async function confirmDelete() {
                   v-model="displayOrder"
                   v-bind="displayOrderProps"
                   :error-messages="errors.displayOrder"
-                  label="Order"
+                  :label="t('modules.order')"
                   type="number"
                 />
               </v-col>
@@ -346,7 +348,7 @@ async function confirmDelete() {
               <v-switch
                 v-model="enabled"
                 v-bind="enabledProps"
-                label="Enabled"
+                :label="t('modules.enabled')"
                 color="primary"
                 inset
                 hide-details
@@ -354,7 +356,7 @@ async function confirmDelete() {
               <v-checkbox
                 v-model="createDefaultPermissions"
                 v-bind="createDefaultPermissionsProps"
-                label="Create standard permissions (view, create, edit, delete, export, import)"
+                :label="t('modules.createPermissions')"
                 hide-details
               />
             </template>
@@ -363,8 +365,8 @@ async function confirmDelete() {
 
         <v-card-actions class="px-6 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="formOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="saving" @click="onSubmit">Save</v-btn>
+          <v-btn variant="text" @click="formOpen = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" :loading="saving" @click="onSubmit">{{ t('common.save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -372,15 +374,18 @@ async function confirmDelete() {
     <!-- Delete confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="420" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete module</v-card-title>
+        <v-card-title class="text-h6">{{ t('modules.deleteTitle') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This also deletes all of its
-          permissions and removes them from every role. This cannot be undone.
+          <i18n-t keypath="modules.deleteConfirm" tag="span">
+            <template #name>
+              <strong>{{ deleteTarget?.name }}</strong>
+            </template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="deleting" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="deleting" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

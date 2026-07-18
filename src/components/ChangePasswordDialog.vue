@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { changePasswordSchema } from '@/schemas/auth'
 import { authApi } from '@/api/auth'
 import { useApiError } from '@/composables/useApiError'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
@@ -19,7 +22,7 @@ const loading = ref(false)
 const snackbar = ref(false)
 
 const { handleSubmit, defineField, errors, resetForm } = useForm({
-  validationSchema: toTypedSchema(changePasswordSchema),
+  validationSchema: toTypedSchema(changePasswordSchema(t)),
   initialValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
 })
 
@@ -66,7 +69,7 @@ const onSubmit = handleSubmit(async (values) => {
     @update:model-value="emit('update:modelValue', $event)"
   >
     <v-card rounded="lg">
-      <v-card-title class="text-h6 pt-4 px-6">Change password</v-card-title>
+      <v-card-title class="text-h6 pt-4 px-6">{{ t('changePassword.title') }}</v-card-title>
 
       <v-card-text class="px-6">
         <v-alert v-if="errorMessage" type="error" variant="tonal" density="compact" class="mb-4">
@@ -78,7 +81,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-model="currentPassword"
             v-bind="currentPasswordProps"
             :error-messages="errors.currentPassword"
-            label="Current password"
+            :label="t('changePassword.current')"
             type="password"
             autocomplete="current-password"
             prepend-inner-icon="mdi-lock-outline"
@@ -87,7 +90,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-model="newPassword"
             v-bind="newPasswordProps"
             :error-messages="errors.newPassword"
-            label="New password"
+            :label="t('changePassword.new')"
             type="password"
             autocomplete="new-password"
             prepend-inner-icon="mdi-lock-plus-outline"
@@ -96,7 +99,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-model="confirmPassword"
             v-bind="confirmPasswordProps"
             :error-messages="errors.confirmPassword"
-            label="Confirm new password"
+            :label="t('changePassword.confirm')"
             type="password"
             autocomplete="new-password"
             prepend-inner-icon="mdi-lock-check-outline"
@@ -106,13 +109,13 @@ const onSubmit = handleSubmit(async (values) => {
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="close">Cancel</v-btn>
-        <v-btn color="primary" :loading="loading" @click="onSubmit">Change password</v-btn>
+        <v-btn variant="text" @click="close">{{ t('common.cancel') }}</v-btn>
+        <v-btn color="primary" :loading="loading" @click="onSubmit">{{ t('changePassword.submit') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <v-snackbar v-model="snackbar" color="success" timeout="4000">
-    Password changed successfully.
+    {{ t('changePassword.success') }}
   </v-snackbar>
 </template>

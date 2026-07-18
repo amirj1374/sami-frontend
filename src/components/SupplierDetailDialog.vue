@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { suppliersApi } from '@/api/suppliers'
 import { useApiError } from '@/composables/useApiError'
+import { useFormat } from '@/composables/useFormat'
 import { usePermission } from '@/composables/usePermission'
 import type {
   SupDocumentType,
@@ -31,7 +33,9 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+const { t } = useI18n()
 const { can } = usePermission()
+const { formatDateTime } = useFormat()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 const detail = ref<SupplierDetail | null>(null)
@@ -134,12 +138,6 @@ async function deleteDocument(doc: SupplierDocument) {
   }
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(value),
-  )
-}
-
 const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
 </script>
 
@@ -159,10 +157,10 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
       </v-card-title>
 
       <v-tabs v-model="tab" class="px-4" density="compact">
-        <v-tab value="profile">Profile</v-tab>
-        <v-tab value="rating">Evaluation</v-tab>
-        <v-tab value="documents">Documents ({{ documents.length }})</v-tab>
-        <v-tab value="history">History</v-tab>
+        <v-tab value="profile">{{ t('suppliers.detail.tabs.profile') }}</v-tab>
+        <v-tab value="rating">{{ t('suppliers.detail.tabs.evaluation') }}</v-tab>
+        <v-tab value="documents">{{ t('suppliers.detail.tabs.documents', { count: documents.length }) }}</v-tab>
+        <v-tab value="history">{{ t('suppliers.detail.tabs.history') }}</v-tab>
       </v-tabs>
       <v-divider />
 
@@ -174,48 +172,47 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
         <v-window v-model="tab">
           <v-window-item value="profile">
             <v-row dense class="text-body-2">
-              <v-col cols="6" sm="4"><strong>Company:</strong> {{ row.companyName }}</v-col>
-              <v-col cols="6" sm="4"><strong>Legal name:</strong> {{ detail?.legalName ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>Owner:</strong> {{ detail?.ownerName ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>Tax no.:</strong> {{ detail?.taxNumber ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>National ID:</strong> {{ detail?.nationalId ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>Reg. no.:</strong> {{ detail?.registrationNumber ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>City:</strong> {{ row.city ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>Payment term:</strong> {{ row.paymentTerm?.name ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>Credit limit:</strong> {{ row.creditLimit ?? '—' }}</v-col>
-              <v-col cols="12"><strong>Website:</strong> {{ detail?.website ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.company') }}</strong> {{ row.companyName }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.legalName') }}</strong> {{ detail?.legalName ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.owner') }}</strong> {{ detail?.ownerName ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.taxNo') }}</strong> {{ detail?.taxNumber ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.nationalId') }}</strong> {{ detail?.nationalId ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.regNo') }}</strong> {{ detail?.registrationNumber ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.city') }}</strong> {{ row.city ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.paymentTerm') }}</strong> {{ row.paymentTerm?.name ?? '—' }}</v-col>
+              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.creditLimit') }}</strong> {{ row.creditLimit ?? '—' }}</v-col>
+              <v-col cols="12"><strong>{{ t('suppliers.detail.profile.website') }}</strong> {{ detail?.website ?? '—' }}</v-col>
             </v-row>
 
-            <p class="text-subtitle-2 mt-4 mb-1">Channels</p>
+            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.channels') }}</p>
             <div v-for="(channel, i) in detail?.channels" :key="'ch' + i" class="text-body-2">
               <v-icon :icon="channel.kind === 'PHONE' ? 'mdi-phone' : 'mdi-email'" size="x-small" />
               {{ channel.value }}
-              <v-chip v-if="channel.isDefault" size="x-small" variant="tonal" class="ml-1">default</v-chip>
+              <v-chip v-if="channel.isDefault" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.default') }}</v-chip>
             </div>
 
-            <p class="text-subtitle-2 mt-4 mb-1">Contact persons</p>
+            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.contactPersons') }}</p>
             <div v-for="(contact, i) in detail?.contacts" :key="'co' + i" class="text-body-2">
               {{ contact.fullName }}
               <span class="text-caption text-medium-emphasis">
                 {{ [contact.position, contact.mobile ?? contact.phone, contact.email].filter(Boolean).join(' · ') }}
               </span>
-              <v-chip v-if="contact.isPrimary" size="x-small" variant="tonal" class="ml-1">primary</v-chip>
+              <v-chip v-if="contact.isPrimary" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.primary') }}</v-chip>
             </div>
 
-            <p class="text-subtitle-2 mt-4 mb-1">Bank accounts</p>
+            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.bankAccounts') }}</p>
             <div v-for="(bank, i) in detail?.bankAccounts" :key="'b' + i" class="text-body-2">
               {{ bank.bankName }}
               <span class="text-caption text-medium-emphasis">
                 {{ [bank.iban, bank.accountNumber, bank.accountHolder].filter(Boolean).join(' · ') }}
               </span>
-              <v-chip v-if="bank.isDefault" size="x-small" variant="tonal" class="ml-1">default</v-chip>
+              <v-chip v-if="bank.isDefault" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.default') }}</v-chip>
             </div>
           </v-window-item>
 
           <v-window-item value="rating">
             <p class="text-body-2 text-medium-emphasis mb-3">
-              Scores are 0–5 per criterion; the overall rating is the weighted average
-              (weights are configurable). Score 0 leaves a criterion unrated.
+              {{ t('suppliers.evaluation.hint') }}
             </p>
             <div
               v-for="criterion in criteria.filter((c) => c.active)"
@@ -224,7 +221,7 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
             >
               <span class="text-body-2" style="min-width: 180px">
                 {{ criterion.name }}
-                <span class="text-caption text-medium-emphasis">(w {{ criterion.weight }})</span>
+                <span class="text-caption text-medium-emphasis">{{ t('suppliers.evaluation.weight', { weight: criterion.weight }) }}</span>
               </span>
               <v-rating v-model="scores[criterion.id]" density="compact" hover :readonly="!can('suppliers:rate')" />
             </div>
@@ -236,7 +233,7 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
               :loading="busy"
               @click="saveRatings"
             >
-              Save evaluation
+              {{ t('suppliers.evaluation.save') }}
             </v-btn>
           </v-window-item>
 
@@ -248,17 +245,17 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
                 :items="documentTypes.filter((t) => t.active)"
                 item-title="name"
                 item-value="id"
-                label="Document type"
+                :label="t('suppliers.documents.type')"
                 density="compact"
                 hide-details
                 clearable
                 style="max-width: 220px"
               />
               <v-btn size="small" variant="tonal" prepend-icon="mdi-paperclip" :loading="busy" @click="documentInput?.click()">
-                Upload document
+                {{ t('suppliers.documents.upload') }}
               </v-btn>
             </div>
-            <p v-if="documents.length === 0" class="text-body-2 text-medium-emphasis">No documents.</p>
+            <p v-if="documents.length === 0" class="text-body-2 text-medium-emphasis">{{ t('suppliers.documents.empty') }}</p>
             <v-list density="compact">
               <v-list-item v-for="doc in documents" :key="doc.id">
                 <v-list-item-title>
@@ -266,7 +263,7 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
                   <v-chip v-if="doc.docType" size="x-small" variant="tonal" class="ml-1">{{ doc.docType }}</v-chip>
                 </v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ (doc.fileSize / 1024).toFixed(1) }} KB · {{ doc.uploadedByEmail ?? 'system' }} · {{ formatDate(doc.createdAt) }}
+                  {{ t('suppliers.documents.size', { size: (doc.fileSize / 1024).toFixed(1) }) }} · {{ doc.uploadedByEmail ?? t('suppliers.documents.system') }} · {{ formatDateTime(doc.createdAt) }}
                 </v-list-item-subtitle>
                 <template #append>
                   <v-btn icon="mdi-download" size="x-small" variant="text" @click="downloadDocument(doc)" />
@@ -282,7 +279,7 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
                 <div class="d-flex align-center flex-wrap">
                   <v-chip size="x-small" variant="tonal" class="mr-2">{{ log.action }}</v-chip>
                   <span class="text-caption text-medium-emphasis">
-                    {{ formatDate(log.occurredAt) }}
+                    {{ formatDateTime(log.occurredAt) }}
                     <template v-if="log.actorEmail"> · {{ log.actorEmail }}</template>
                   </span>
                 </div>
@@ -295,7 +292,7 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Close</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.close') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

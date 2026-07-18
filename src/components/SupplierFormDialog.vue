@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { suppliersApi } from '@/api/suppliers'
 import { useApiError } from '@/composables/useApiError'
 import type {
@@ -32,6 +33,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: [] }>()
+
+const { t } = useI18n()
 
 const open = computed({
   get: () => props.modelValue,
@@ -168,7 +171,7 @@ function single<T>(list: T[], index: number, key: keyof T) {
 
 async function submit(ignoreDuplicates = false) {
   if (!form.companyName.trim() || !form.displayName.trim() || !form.typeId) {
-    setFormError({ code: 'VALIDATION', message: 'Company name, display name and type are required' })
+    setFormError({ code: 'VALIDATION', message: t('suppliers.validation.requiredFields') })
     tab.value = 'company'
     return
   }
@@ -229,14 +232,14 @@ async function submit(ignoreDuplicates = false) {
   <v-dialog v-model="open" max-width="880">
     <v-card rounded="lg">
       <v-card-title class="text-h6 pt-4 px-6">
-        {{ isEdit ? 'Edit supplier ' + supplier?.supplier.supplierCode : 'New supplier' }}
+        {{ isEdit ? t('suppliers.form.editTitle', { code: supplier?.supplier.supplierCode }) : t('suppliers.form.newTitle') }}
       </v-card-title>
 
       <v-tabs v-model="tab" class="px-4">
-        <v-tab value="company">Company</v-tab>
-        <v-tab value="channels">Phones, emails & addresses</v-tab>
-        <v-tab value="contacts">Contact persons</v-tab>
-        <v-tab value="banking">Banking</v-tab>
+        <v-tab value="company">{{ t('suppliers.form.tabs.company') }}</v-tab>
+        <v-tab value="channels">{{ t('suppliers.form.tabs.channels') }}</v-tab>
+        <v-tab value="contacts">{{ t('suppliers.form.tabs.contacts') }}</v-tab>
+        <v-tab value="banking">{{ t('suppliers.form.tabs.banking') }}</v-tab>
       </v-tabs>
       <v-divider />
 
@@ -247,74 +250,74 @@ async function submit(ignoreDuplicates = false) {
         <v-alert v-if="duplicateWarning" type="warning" variant="tonal" class="mb-4">
           <p class="mb-2">{{ duplicateWarning }}</p>
           <v-btn size="small" color="warning" :loading="saving" class="mr-2" @click="submit(true)">
-            Save anyway
+            {{ t('suppliers.form.saveAnyway') }}
           </v-btn>
-          <v-btn size="small" variant="text" @click="duplicateWarning = null">Back</v-btn>
+          <v-btn size="small" variant="text" @click="duplicateWarning = null">{{ t('common.back') }}</v-btn>
         </v-alert>
 
         <v-window v-model="tab">
           <v-window-item value="company">
             <v-row dense>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.companyName" label="Company name *" maxlength="160" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.displayName" label="Display name *" maxlength="160" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.legalName" label="Legal name" maxlength="160" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.ownerName" label="Owner name" maxlength="120" /></v-col>
+              <v-col cols="12" sm="6"><v-text-field v-model="form.companyName" :label="t('suppliers.form.fields.companyName')" maxlength="160" /></v-col>
+              <v-col cols="12" sm="6"><v-text-field v-model="form.displayName" :label="t('suppliers.form.fields.displayName')" maxlength="160" /></v-col>
+              <v-col cols="12" sm="6"><v-text-field v-model="form.legalName" :label="t('suppliers.form.fields.legalName')" maxlength="160" /></v-col>
+              <v-col cols="12" sm="6"><v-text-field v-model="form.ownerName" :label="t('suppliers.form.fields.ownerName')" maxlength="120" /></v-col>
               <v-col cols="6" sm="3">
-                <v-select v-model="form.typeId" label="Type *" :items="types.filter((t) => t.active)" item-title="name" item-value="id" />
+                <v-select v-model="form.typeId" :label="t('suppliers.form.fields.type')" :items="types.filter((ty) => ty.active)" item-title="name" item-value="id" />
               </v-col>
               <v-col cols="6" sm="3">
-                <v-select v-model="form.statusId" label="Status" :items="selectableStatuses" item-title="name" item-value="id" />
+                <v-select v-model="form.statusId" :label="t('suppliers.form.fields.status')" :items="selectableStatuses" item-title="name" item-value="id" />
               </v-col>
               <v-col cols="6" sm="3">
-                <v-select v-model="form.paymentTermId" label="Payment term" :items="paymentTerms.filter((t) => t.active)" item-title="name" item-value="id" clearable />
+                <v-select v-model="form.paymentTermId" :label="t('suppliers.form.fields.paymentTerm')" :items="paymentTerms.filter((pt) => pt.active)" item-title="name" item-value="id" clearable />
               </v-col>
               <v-col cols="6" sm="3">
-                <v-text-field v-model.number="form.creditLimit" label="Credit limit" type="number" min="0" clearable />
+                <v-text-field v-model.number="form.creditLimit" :label="t('suppliers.form.fields.creditLimit')" type="number" min="0" clearable />
               </v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.nationalId" label="National ID" maxlength="32" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.economicCode" label="Economic code" maxlength="32" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.taxNumber" label="Tax number" maxlength="64" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.registrationNumber" label="Registration no." maxlength="64" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.country" label="Country" maxlength="100" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.province" label="Province" maxlength="100" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.city" label="City" maxlength="100" /></v-col>
-              <v-col cols="6" sm="3"><v-text-field v-model="form.postalCode" label="Postal code" maxlength="20" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.website" label="Website" maxlength="255" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.nationalId" :label="t('suppliers.form.fields.nationalId')" maxlength="32" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.economicCode" :label="t('suppliers.form.fields.economicCode')" maxlength="32" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.taxNumber" :label="t('suppliers.form.fields.taxNumber')" maxlength="64" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.registrationNumber" :label="t('suppliers.form.fields.registrationNumber')" maxlength="64" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.country" :label="t('suppliers.form.fields.country')" maxlength="100" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.province" :label="t('suppliers.form.fields.province')" maxlength="100" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.city" :label="t('suppliers.form.fields.city')" maxlength="100" /></v-col>
+              <v-col cols="6" sm="3"><v-text-field v-model="form.postalCode" :label="t('suppliers.form.fields.postalCode')" maxlength="20" /></v-col>
+              <v-col cols="12" sm="6"><v-text-field v-model="form.website" :label="t('suppliers.form.fields.website')" maxlength="255" /></v-col>
               <v-col cols="12" sm="6">
-                <v-autocomplete v-model="form.categoryIds" label="Categories" :items="categories.filter((c) => c.active)" item-title="name" item-value="id" multiple chips closable-chips />
+                <v-autocomplete v-model="form.categoryIds" :label="t('suppliers.form.fields.categories')" :items="categories.filter((c) => c.active)" item-title="name" item-value="id" multiple chips closable-chips />
               </v-col>
               <v-col cols="12">
-                <v-autocomplete v-model="form.tagIds" label="Tags" :items="tags.filter((t) => t.active)" item-title="name" item-value="id" multiple chips closable-chips />
+                <v-autocomplete v-model="form.tagIds" :label="t('suppliers.form.fields.tags')" :items="tags.filter((tg) => tg.active)" item-title="name" item-value="id" multiple chips closable-chips />
               </v-col>
-              <v-col cols="12"><v-textarea v-model="form.description" label="Description" rows="2" maxlength="2000" /></v-col>
+              <v-col cols="12"><v-textarea v-model="form.description" :label="t('suppliers.form.fields.description')" rows="2" maxlength="2000" /></v-col>
             </v-row>
           </v-window-item>
 
           <v-window-item value="channels">
             <div class="d-flex ga-2 mb-3">
-              <v-btn size="small" variant="tonal" prepend-icon="mdi-phone-plus" @click="addChannel('PHONE')">Add phone</v-btn>
-              <v-btn size="small" variant="tonal" prepend-icon="mdi-email-plus" @click="addChannel('EMAIL')">Add email</v-btn>
-              <v-btn size="small" variant="tonal" prepend-icon="mdi-map-marker-plus" @click="addAddress">Add address</v-btn>
+              <v-btn size="small" variant="tonal" prepend-icon="mdi-phone-plus" @click="addChannel('PHONE')">{{ t('suppliers.contacts.addPhone') }}</v-btn>
+              <v-btn size="small" variant="tonal" prepend-icon="mdi-email-plus" @click="addChannel('EMAIL')">{{ t('suppliers.contacts.addEmail') }}</v-btn>
+              <v-btn size="small" variant="tonal" prepend-icon="mdi-map-marker-plus" @click="addAddress">{{ t('suppliers.contacts.addAddress') }}</v-btn>
             </div>
             <v-row v-for="(channel, i) in channels" :key="'c' + i" dense align="center">
               <v-col cols="auto"><v-icon :icon="channel.kind === 'PHONE' ? 'mdi-phone' : 'mdi-email'" size="small" /></v-col>
-              <v-col cols="4"><v-text-field v-model="channel.value" :label="channel.kind === 'PHONE' ? 'Phone' : 'Email'" density="compact" hide-details /></v-col>
-              <v-col cols="3"><v-text-field v-model="channel.label" label="Label" density="compact" hide-details /></v-col>
+              <v-col cols="4"><v-text-field v-model="channel.value" :label="channel.kind === 'PHONE' ? t('suppliers.contacts.phone') : t('suppliers.contacts.email')" density="compact" hide-details /></v-col>
+              <v-col cols="3"><v-text-field v-model="channel.label" :label="t('suppliers.contacts.label')" density="compact" hide-details /></v-col>
               <v-col cols="auto">
-                <v-chip size="small" :color="channel.isDefault ? 'primary' : undefined" :variant="channel.isDefault ? 'flat' : 'outlined'" @click="setDefaultChannel(i)">default</v-chip>
+                <v-chip size="small" :color="channel.isDefault ? 'primary' : undefined" :variant="channel.isDefault ? 'flat' : 'outlined'" @click="setDefaultChannel(i)">{{ t('suppliers.contacts.default') }}</v-chip>
               </v-col>
               <v-col cols="auto"><v-btn icon="mdi-close" size="x-small" variant="text" @click="channels.splice(i, 1)" /></v-col>
             </v-row>
 
             <v-card v-for="(address, i) in addresses" :key="'a' + i" variant="outlined" class="mt-3 pa-3">
               <v-row dense>
-                <v-col cols="12" sm="8"><v-text-field v-model="address.line" label="Address line *" density="compact" hide-details /></v-col>
-                <v-col cols="12" sm="4"><v-text-field v-model="address.label" label="Label" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="address.city" label="City" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="address.province" label="Province" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="2"><v-text-field v-model="address.postalCode" label="Postal code" density="compact" hide-details /></v-col>
+                <v-col cols="12" sm="8"><v-text-field v-model="address.line" :label="t('suppliers.contacts.addressLine')" density="compact" hide-details /></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="address.label" :label="t('suppliers.contacts.label')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="address.city" :label="t('suppliers.form.fields.city')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="address.province" :label="t('suppliers.form.fields.province')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="2"><v-text-field v-model="address.postalCode" :label="t('suppliers.form.fields.postalCode')" density="compact" hide-details /></v-col>
                 <v-col cols="6" sm="2" class="d-flex align-center justify-end ga-1">
-                  <v-chip size="small" :color="address.isDefault ? 'primary' : undefined" :variant="address.isDefault ? 'flat' : 'outlined'" @click="single(addresses, i, 'isDefault')">default</v-chip>
+                  <v-chip size="small" :color="address.isDefault ? 'primary' : undefined" :variant="address.isDefault ? 'flat' : 'outlined'" @click="single(addresses, i, 'isDefault')">{{ t('suppliers.contacts.default') }}</v-chip>
                   <v-btn icon="mdi-close" size="x-small" variant="text" @click="addresses.splice(i, 1)" />
                 </v-col>
               </v-row>
@@ -322,21 +325,21 @@ async function submit(ignoreDuplicates = false) {
           </v-window-item>
 
           <v-window-item value="contacts">
-            <v-btn size="small" variant="tonal" prepend-icon="mdi-account-plus" class="mb-3" @click="addContact">Add contact</v-btn>
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-account-plus" class="mb-3" @click="addContact">{{ t('suppliers.contacts.addContact') }}</v-btn>
             <v-card v-for="(contact, i) in contacts" :key="i" variant="outlined" class="mb-3 pa-3">
               <v-row dense>
-                <v-col cols="12" sm="4"><v-text-field v-model="contact.fullName" label="Full name *" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="contact.position" label="Position" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="contact.department" label="Department" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="3"><v-text-field v-model="contact.phone" label="Phone" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="3"><v-text-field v-model="contact.mobile" label="Mobile" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="3"><v-text-field v-model="contact.email" label="Email" density="compact" hide-details /></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="contact.fullName" :label="t('suppliers.contacts.fullName')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="contact.position" :label="t('suppliers.contacts.position')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="contact.department" :label="t('suppliers.contacts.department')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="3"><v-text-field v-model="contact.phone" :label="t('suppliers.contacts.phone')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="3"><v-text-field v-model="contact.mobile" :label="t('suppliers.contacts.mobile')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="3"><v-text-field v-model="contact.email" :label="t('suppliers.contacts.email')" density="compact" hide-details /></v-col>
                 <v-col cols="6" sm="3">
-                  <v-select v-model="contact.preferredMethod" label="Preferred contact" :items="['phone', 'mobile', 'email', 'whatsapp', 'telegram']" density="compact" hide-details clearable />
+                  <v-select v-model="contact.preferredMethod" :label="t('suppliers.contacts.preferredMethod')" :items="['phone', 'mobile', 'email', 'whatsapp', 'telegram']" density="compact" hide-details clearable />
                 </v-col>
-                <v-col cols="12" sm="9"><v-text-field v-model="contact.notes" label="Notes" density="compact" hide-details /></v-col>
+                <v-col cols="12" sm="9"><v-text-field v-model="contact.notes" :label="t('suppliers.contacts.notes')" density="compact" hide-details /></v-col>
                 <v-col cols="12" sm="3" class="d-flex align-center justify-end ga-1">
-                  <v-chip size="small" :color="contact.isPrimary ? 'primary' : undefined" :variant="contact.isPrimary ? 'flat' : 'outlined'" @click="single(contacts, i, 'isPrimary')">primary</v-chip>
+                  <v-chip size="small" :color="contact.isPrimary ? 'primary' : undefined" :variant="contact.isPrimary ? 'flat' : 'outlined'" @click="single(contacts, i, 'isPrimary')">{{ t('suppliers.contacts.primary') }}</v-chip>
                   <v-btn icon="mdi-close" size="x-small" variant="text" @click="contacts.splice(i, 1)" />
                 </v-col>
               </v-row>
@@ -344,16 +347,16 @@ async function submit(ignoreDuplicates = false) {
           </v-window-item>
 
           <v-window-item value="banking">
-            <v-btn size="small" variant="tonal" prepend-icon="mdi-bank-plus" class="mb-3" @click="addBank">Add bank account</v-btn>
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-bank-plus" class="mb-3" @click="addBank">{{ t('suppliers.banking.addAccount') }}</v-btn>
             <v-card v-for="(bank, i) in banks" :key="i" variant="outlined" class="mb-3 pa-3">
               <v-row dense>
-                <v-col cols="12" sm="4"><v-text-field v-model="bank.bankName" label="Bank name *" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="bank.accountNumber" label="Account number" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="bank.accountHolder" label="Account holder" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="5"><v-text-field v-model="bank.iban" label="IBAN" density="compact" hide-details /></v-col>
-                <v-col cols="6" sm="4"><v-text-field v-model="bank.cardNumber" label="Card number (16 digits)" density="compact" hide-details /></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="bank.bankName" :label="t('suppliers.banking.bankName')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="bank.accountNumber" :label="t('suppliers.banking.accountNumber')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="bank.accountHolder" :label="t('suppliers.banking.accountHolder')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="5"><v-text-field v-model="bank.iban" :label="t('suppliers.banking.iban')" density="compact" hide-details /></v-col>
+                <v-col cols="6" sm="4"><v-text-field v-model="bank.cardNumber" :label="t('suppliers.banking.cardNumber')" density="compact" hide-details /></v-col>
                 <v-col cols="12" sm="3" class="d-flex align-center justify-end ga-1">
-                  <v-chip size="small" :color="bank.isDefault ? 'primary' : undefined" :variant="bank.isDefault ? 'flat' : 'outlined'" @click="single(banks, i, 'isDefault')">default</v-chip>
+                  <v-chip size="small" :color="bank.isDefault ? 'primary' : undefined" :variant="bank.isDefault ? 'flat' : 'outlined'" @click="single(banks, i, 'isDefault')">{{ t('suppliers.contacts.default') }}</v-chip>
                   <v-btn icon="mdi-close" size="x-small" variant="text" @click="banks.splice(i, 1)" />
                 </v-col>
               </v-row>
@@ -364,8 +367,8 @@ async function submit(ignoreDuplicates = false) {
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Cancel</v-btn>
-        <v-btn color="primary" :loading="saving" :disabled="!!duplicateWarning" @click="submit()">Save</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
+        <v-btn color="primary" :loading="saving" :disabled="!!duplicateWarning" @click="submit()">{{ t('common.save') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

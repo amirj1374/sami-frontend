@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { productsApi, type ProductListParams } from '@/api/products'
 import { usePermission } from '@/composables/usePermission'
 import { useApiError } from '@/composables/useApiError'
+import { useFormat } from '@/composables/useFormat'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import type { Product } from '@/types/models'
 
+const { t } = useI18n()
+const { formatNumber } = useFormat()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
@@ -26,14 +30,14 @@ const totalItems = ref(0)
 const loading = ref(false)
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
-const headers = [
-  { title: 'Name', key: 'name' },
-  { title: 'SKU', key: 'sku' },
-  { title: 'Price', key: 'price', align: 'end' as const },
-  { title: 'Stock', key: 'stockQuantity', align: 'end' as const },
-  { title: 'Active', key: 'active' },
+const headers = computed(() => [
+  { title: t('products.colName'), key: 'name' },
+  { title: t('products.colSku'), key: 'sku' },
+  { title: t('products.colPrice'), key: 'price', align: 'end' as const },
+  { title: t('products.colStock'), key: 'stockQuantity', align: 'end' as const },
+  { title: t('products.colActive'), key: 'active' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
-]
+])
 
 // --- Filters --------------------------------------------------------------
 const nameFilter = ref('')
@@ -105,17 +109,17 @@ async function confirmDelete() {
 }
 
 function formatPrice(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
+  return formatNumber(value, { style: 'currency', currency: 'USD' })
 }
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Products</h1>
+      <h1 class="text-h4">{{ t('products.title') }}</h1>
       <v-spacer />
       <v-btn v-if="can('products:create')" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New product
+        {{ t('products.newProduct') }}
       </v-btn>
     </div>
 
@@ -129,7 +133,7 @@ function formatPrice(value: number): string {
           <v-col cols="12" sm="6">
             <v-text-field
               v-model="nameFilter"
-              label="Search by name"
+              :label="t('products.searchByName')"
               prepend-inner-icon="mdi-magnify"
               clearable
               hide-details
@@ -139,11 +143,11 @@ function formatPrice(value: number): string {
           <v-col cols="12" sm="6">
             <v-select
               v-model="activeFilter"
-              label="Status"
+              :label="t('products.status')"
               :items="[
-                { title: 'All', value: null },
-                { title: 'Active', value: true },
-                { title: 'Inactive', value: false },
+                { title: t('common.all'), value: null },
+                { title: t('products.active'), value: true },
+                { title: t('products.inactive'), value: false },
               ]"
               hide-details
               density="comfortable"
@@ -163,7 +167,7 @@ function formatPrice(value: number): string {
         <template #[`item.price`]="{ item }">{{ formatPrice(item.price) }}</template>
         <template #[`item.active`]="{ item }">
           <v-chip :color="item.active ? 'success' : 'default'" size="small" variant="tonal">
-            {{ item.active ? 'Active' : 'Inactive' }}
+            {{ item.active ? t('products.active') : t('products.inactive') }}
           </v-chip>
         </template>
         <template #[`item.actions`]="{ item }">
@@ -190,14 +194,16 @@ function formatPrice(value: number): string {
 
     <v-dialog :model-value="!!deleteTarget" max-width="420" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete product</v-card-title>
+        <v-card-title class="text-h6">{{ t('products.deleteTitle') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
+          <i18n-t keypath="products.deleteConfirm" tag="span">
+            <template #name><strong>{{ deleteTarget?.name }}</strong></template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="deleting" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="deleting" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { customersApi } from '@/api/customers'
 import { crmConfigApi } from '@/api/crmConfig'
 import { useApiError } from '@/composables/useApiError'
 import { usePermission } from '@/composables/usePermission'
+import { useFormat } from '@/composables/useFormat'
 import type {
   Customer,
   CustomerDetail,
@@ -31,6 +33,8 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+const { t } = useI18n()
+const { formatDateTime } = useFormat()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const tab = ref<'timeline' | 'notes' | 'relations'>('timeline')
@@ -250,11 +254,18 @@ const PRIORITY_COLORS: Record<NotePriority, string> = {
   HIGH: 'error',
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(value),
-  )
-}
+const priorityItems = computed(() =>
+  (['LOW', 'NORMAL', 'HIGH'] as NotePriority[]).map((value) => ({
+    value,
+    title: t(`customers.profile.priority.${value}`),
+  })),
+)
+const visibilityItems = computed(() =>
+  (['PUBLIC', 'PRIVATE'] as NoteVisibility[]).map((value) => ({
+    value,
+    title: t(`customers.profile.visibilityValue.${value}`),
+  })),
+)
 
 function detailEntries(event: CustomerEvent): [string, unknown][] {
   return event.detail ? Object.entries(event.detail) : []
@@ -310,9 +321,9 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
       </v-card-text>
 
       <v-tabs v-model="tab" class="px-4">
-        <v-tab value="timeline">Timeline</v-tab>
-        <v-tab value="notes">Notes</v-tab>
-        <v-tab value="relations">Relations</v-tab>
+        <v-tab value="timeline">{{ t('customers.profile.tabs.timeline') }}</v-tab>
+        <v-tab value="notes">{{ t('customers.profile.tabs.notes') }}</v-tab>
+        <v-tab value="relations">{{ t('customers.profile.tabs.relations') }}</v-tab>
       </v-tabs>
       <v-divider />
 
@@ -322,7 +333,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
             <v-select
               v-model="eventTypeFilter"
               :items="eventTypeItems"
-              label="Filter by event type"
+              :label="t('customers.timeline.filterLabel')"
               density="compact"
               clearable
               hide-details
@@ -331,7 +342,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
             />
             <v-progress-linear v-if="timelineLoading" indeterminate class="mb-3" />
             <p v-if="!timelineLoading && events.length === 0" class="text-body-2 text-medium-emphasis">
-              No events.
+              {{ t('customers.timeline.empty') }}
             </p>
             <v-timeline density="compact" side="end" truncate-line="both">
               <v-timeline-item
@@ -345,7 +356,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
                     {{ event.eventType }}
                   </v-chip>
                   <span class="text-caption text-medium-emphasis">
-                    {{ formatDate(event.occurredAt) }}
+                    {{ formatDateTime(event.occurredAt) }}
                     <template v-if="event.sourceModule !== 'crm'"> · {{ event.sourceModule }}</template>
                     <template v-if="event.actorEmail"> · {{ event.actorEmail }}</template>
                   </span>
@@ -370,20 +381,20 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
 
           <v-window-item value="notes">
             <div v-if="can('customers:edit')" class="mb-4">
-              <v-textarea v-model="noteBody" label="Add a note" rows="2" hide-details class="mb-2" />
+              <v-textarea v-model="noteBody" :label="t('customers.profile.notes.add')" rows="2" hide-details class="mb-2" />
               <div class="d-flex align-center ga-2">
                 <v-select
                   v-model="notePriority"
-                  :items="['LOW', 'NORMAL', 'HIGH']"
-                  label="Priority"
+                  :items="priorityItems"
+                  :label="t('customers.profile.notes.priority')"
                   density="compact"
                   hide-details
                   style="max-width: 140px"
                 />
                 <v-select
                   v-model="noteVisibility"
-                  :items="['PUBLIC', 'PRIVATE']"
-                  label="Visibility"
+                  :items="visibilityItems"
+                  :label="t('customers.profile.notes.visibility')"
                   density="compact"
                   hide-details
                   style="max-width: 140px"
@@ -395,22 +406,22 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
                   :loading="noteBusy"
                   @click="addNote"
                 >
-                  Add note
+                  {{ t('customers.profile.notes.addButton') }}
                 </v-btn>
               </div>
             </div>
 
-            <p v-if="notes.length === 0" class="text-body-2 text-medium-emphasis">No notes.</p>
+            <p v-if="notes.length === 0" class="text-body-2 text-medium-emphasis">{{ t('customers.profile.notes.empty') }}</p>
             <v-card v-for="note in notes" :key="note.id" variant="outlined" class="mb-3 pa-3">
               <div class="d-flex align-center mb-1">
                 <v-chip size="x-small" variant="tonal" :color="PRIORITY_COLORS[note.priority]" class="mr-2">
-                  {{ note.priority }}
+                  {{ t(`customers.profile.priority.${note.priority}`) }}
                 </v-chip>
                 <v-chip v-if="note.visibility === 'PRIVATE'" size="x-small" variant="tonal" class="mr-2">
-                  <v-icon start icon="mdi-lock" size="x-small" />private
+                  <v-icon start icon="mdi-lock" size="x-small" />{{ t('customers.profile.visibilityValue.PRIVATE') }}
                 </v-chip>
                 <span class="text-caption text-medium-emphasis">
-                  {{ note.authorEmail ?? 'system' }} · {{ formatDate(note.createdAt) }}
+                  {{ note.authorEmail ?? t('customers.profile.systemAuthor') }} · {{ formatDateTime(note.createdAt) }}
                 </span>
                 <v-spacer />
                 <v-btn icon="mdi-delete" size="x-small" variant="text" @click="deleteNote(note)" />
@@ -433,7 +444,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
                     :items="relationTypes"
                     item-title="name"
                     item-value="id"
-                    label="Relation type"
+                    :label="t('customers.profile.relations.type')"
                     density="compact"
                     hide-details
                   />
@@ -441,7 +452,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
                 <v-col cols="12" sm="5">
                   <v-text-field
                     v-model="relationSearch"
-                    label="Search customer…"
+                    :label="t('customers.profile.relations.search')"
                     density="compact"
                     hide-details
                     clearable
@@ -455,7 +466,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
                     :loading="relationBusy"
                     @click="addRelation"
                   >
-                    Add relation
+                    {{ t('customers.profile.relations.add') }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -477,7 +488,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
               <v-text-field
                 v-if="relationTarget"
                 v-model="relationNote"
-                label="Note (optional)"
+                :label="t('customers.profile.relations.note')"
                 density="compact"
                 hide-details
                 class="mt-2"
@@ -485,7 +496,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
             </div>
 
             <p v-if="relations.length === 0" class="text-body-2 text-medium-emphasis">
-              No relations.
+              {{ t('customers.profile.relations.empty') }}
             </p>
             <v-list density="compact">
               <v-list-item v-for="relation in relations" :key="relation.id">
@@ -518,7 +529,7 @@ function detailEntries(event: CustomerEvent): [string, unknown][] {
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="open = false">Close</v-btn>
+        <v-btn variant="text" @click="open = false">{{ t('common.close') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

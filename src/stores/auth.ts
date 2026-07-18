@@ -4,6 +4,7 @@ import type { CurrentUser } from '@/types/models'
 import { authApi, type LoginPayload, type RegisterPayload } from '@/api/auth'
 import { tokenStorage } from '@/api/tokenStorage'
 import { useMenuStore } from '@/stores/menu'
+import { MOCK_MODE } from '@/mocks/config'
 
 /**
  * Authentication state.
@@ -84,6 +85,16 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function initialize(): Promise<void> {
     if (initialized.value) {
+      return
+    }
+    // Development Mock Mode: authenticate as the mock user with no backend
+    // round-trip (no login / token validation / refresh request). The dynamic
+    // import keeps mock data out of the production bundle; the whole branch is
+    // dead code when VITE_ENABLE_MOCK_MODE is off.
+    if (MOCK_MODE) {
+      const { mockUser } = await import('@/mocks/data/auth')
+      user.value = mockUser
+      initialized.value = true
       return
     }
     if (tokenStorage.getAccessToken()) {

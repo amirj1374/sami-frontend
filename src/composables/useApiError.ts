@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { ApiError } from '@/types/api'
+import { i18n } from '@/i18n'
 
 /** Type guard for the backend's ApiError shape. */
 function isApiError(value: unknown): value is ApiError {
@@ -19,7 +20,7 @@ export function useApiError() {
     } else if (err instanceof Error) {
       message.value = err.message
     } else {
-      message.value = 'Something went wrong. Please try again.'
+      message.value = i18n.global.t('apiError.generic')
     }
   }
 

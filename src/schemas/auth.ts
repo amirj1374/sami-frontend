@@ -1,54 +1,65 @@
 import { z } from 'zod'
+import type { TranslateFn } from '@/i18n'
 
-/** Zod schemas shared by the auth forms; the source of truth for client validation. */
+/**
+ * Zod schemas shared by the auth forms; the source of truth for client
+ * validation. Each is a factory taking the component's `t` so validation
+ * messages are localized (and re-created if the schema is rebuilt on a locale
+ * change).
+ */
 
-export const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-})
+export const loginSchema = (t: TranslateFn) =>
+  z.object({
+    email: z.string().min(1, t('validation.emailRequired')).email(t('validation.emailInvalid')),
+    password: z.string().min(1, t('validation.passwordRequired')),
+  })
 
-export const registerSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required').max(120),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password is too long'),
-})
-
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
+export const registerSchema = (t: TranslateFn) =>
+  z.object({
+    fullName: z.string().min(1, t('validation.fullNameRequired')).max(120),
+    email: z.string().min(1, t('validation.emailRequired')).email(t('validation.emailInvalid')),
+    password: z
       .string()
-      .min(8, 'Password must be at least 8 characters')
-      .max(100, 'Password is too long'),
-    confirmPassword: z.string().min(1, 'Please confirm the new password'),
-  })
-  .refine((values) => values.newPassword === values.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+      .min(8, t('validation.passwordMin'))
+      .max(100, t('validation.passwordMax')),
   })
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-})
+export const changePasswordSchema = (t: TranslateFn) =>
+  z
+    .object({
+      currentPassword: z.string().min(1, t('validation.currentPasswordRequired')),
+      newPassword: z
+        .string()
+        .min(8, t('validation.passwordMin'))
+        .max(100, t('validation.passwordMax')),
+      confirmPassword: z.string().min(1, t('validation.confirmPasswordRequired')),
+    })
+    .refine((values) => values.newPassword === values.confirmPassword, {
+      message: t('validation.passwordsMismatch'),
+      path: ['confirmPassword'],
+    })
 
-export const resetPasswordSchema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .max(100, 'Password is too long'),
-    confirmPassword: z.string().min(1, 'Please confirm the new password'),
-  })
-  .refine((values) => values.newPassword === values.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+export const forgotPasswordSchema = (t: TranslateFn) =>
+  z.object({
+    email: z.string().min(1, t('validation.emailRequired')).email(t('validation.emailInvalid')),
   })
 
-export type LoginForm = z.infer<typeof loginSchema>
-export type RegisterForm = z.infer<typeof registerSchema>
-export type ChangePasswordForm = z.infer<typeof changePasswordSchema>
-export type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>
-export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>
+export const resetPasswordSchema = (t: TranslateFn) =>
+  z
+    .object({
+      newPassword: z
+        .string()
+        .min(8, t('validation.passwordMin'))
+        .max(100, t('validation.passwordMax')),
+      confirmPassword: z.string().min(1, t('validation.confirmPasswordRequired')),
+    })
+    .refine((values) => values.newPassword === values.confirmPassword, {
+      message: t('validation.passwordsMismatch'),
+      path: ['confirmPassword'],
+    })
+
+export type LoginForm = z.infer<ReturnType<typeof loginSchema>>
+export type RegisterForm = z.infer<ReturnType<typeof registerSchema>>
+export type ChangePasswordForm = z.infer<ReturnType<typeof changePasswordSchema>>
+export type ForgotPasswordForm = z.infer<ReturnType<typeof forgotPasswordSchema>>
+export type ResetPasswordForm = z.infer<ReturnType<typeof resetPasswordSchema>>

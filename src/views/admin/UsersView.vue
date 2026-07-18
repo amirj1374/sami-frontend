@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
+import { useFormat } from '@/composables/useFormat'
 import { usersApi, type RoleOption, type UserListParams } from '@/api/users'
 import { userStatusesApi } from '@/api/userStatuses'
 import { profileFieldsApi } from '@/api/profileFields'
@@ -17,6 +19,8 @@ import type {
   UserStatus,
 } from '@/types/models'
 
+const { t } = useI18n()
+const { formatDate } = useFormat()
 const auth = useAuthStore()
 const { can } = usePermission()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
@@ -60,14 +64,14 @@ const loading = ref(false)
 const selected = ref<number[]>([])
 const lastOptions = ref<TableOptions>({ page: 1, itemsPerPage: 10, sortBy: [] })
 
-const headers = [
-  { title: 'Name', key: 'fullName' },
-  { title: 'Email', key: 'email' },
-  { title: 'Role', key: 'role', sortable: false },
-  { title: 'Status', key: 'status', sortable: false },
-  { title: 'Created', key: 'createdAt' },
+const headers = computed(() => [
+  { title: t('users.headerName'), key: 'fullName' },
+  { title: t('users.headerEmail'), key: 'email' },
+  { title: t('users.headerRole'), key: 'role', sortable: false },
+  { title: t('users.headerStatus'), key: 'status', sortable: false },
+  { title: t('users.headerCreated'), key: 'createdAt' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
-]
+])
 
 // --- Filters ----------------------------------------------------------------
 const searchFilter = ref('')
@@ -76,11 +80,11 @@ const statusFilter = ref<number | null>(null)
 const includeHidden = ref(false)
 
 const roleFilterItems = computed(() => [
-  { title: 'All roles', value: null as number | null },
+  { title: t('users.allRoles'), value: null as number | null },
   ...roleOptions.value.map((role) => ({ title: role.name, value: role.id as number | null })),
 ])
 const statusFilterItems = computed(() => [
-  { title: 'All statuses', value: null as number | null },
+  { title: t('users.allStatuses'), value: null as number | null },
   ...statuses.value.map((s) => ({ title: s.name, value: s.id as number | null })),
 ])
 
@@ -262,16 +266,12 @@ function statusColor(status: UserStatus): string {
   if (status.isArchivedState) return 'warning'
   return status.allowsLogin ? 'success' : 'default'
 }
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
-}
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h4">Users</h1>
+      <h1 class="text-h4">{{ t('users.title') }}</h1>
       <v-spacer />
       <v-btn
         v-can="'users:export'"
@@ -281,10 +281,10 @@ function formatDate(value: string): string {
         :loading="exporting"
         @click="exportCsv"
       >
-        Export CSV
+        {{ t('users.exportCsv') }}
       </v-btn>
       <v-btn v-can="'users:create'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        New user
+        {{ t('users.newUser') }}
       </v-btn>
     </div>
 
@@ -298,7 +298,7 @@ function formatDate(value: string): string {
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="searchFilter"
-              label="Search name, email, phone, employee or national code"
+              :label="t('users.searchLabel')"
               prepend-inner-icon="mdi-magnify"
               clearable
               hide-details
@@ -308,7 +308,7 @@ function formatDate(value: string): string {
           <v-col cols="6" sm="3">
             <v-select
               v-model="roleFilter"
-              label="Role"
+              :label="t('users.headerRole')"
               :items="roleFilterItems"
               hide-details
               density="comfortable"
@@ -317,7 +317,7 @@ function formatDate(value: string): string {
           <v-col cols="6" sm="3">
             <v-select
               v-model="statusFilter"
-              label="Status"
+              :label="t('users.headerStatus')"
               :items="statusFilterItems"
               hide-details
               density="comfortable"
@@ -326,7 +326,7 @@ function formatDate(value: string): string {
           <v-col cols="12" sm="2">
             <v-switch
               v-model="includeHidden"
-              label="Archived & deleted"
+              :label="t('users.archivedAndDeleted')"
               color="primary"
               hide-details
               density="compact"
@@ -340,12 +340,14 @@ function formatDate(value: string): string {
         <div v-if="selected.length > 0">
           <v-divider />
           <div class="d-flex align-center flex-wrap px-4 py-2 ga-2">
-            <span class="text-body-2 mr-2">{{ selected.length }} selected</span>
+            <span class="text-body-2 mr-2">{{
+              t('common.selectedCount', { count: selected.length })
+            }}</span>
             <v-select
               v-if="can('users:edit')"
               v-model="bulkStatusId"
               :items="bulkStatusItems"
-              label="Set status to…"
+              :label="t('users.setStatusTo')"
               density="compact"
               hide-details
               style="max-width: 200px"
@@ -358,7 +360,7 @@ function formatDate(value: string): string {
               :loading="bulkBusy"
               @click="bulkSetStatus"
             >
-              Apply
+              {{ t('common.apply') }}
             </v-btn>
             <v-btn
               v-can="'users:archive'"
@@ -369,7 +371,7 @@ function formatDate(value: string): string {
               :loading="bulkBusy"
               @click="runBulk((ids) => usersApi.bulkArchive({ ids }))"
             >
-              Archive
+              {{ t('users.archive') }}
             </v-btn>
             <v-btn
               v-can="'users:restore'"
@@ -380,13 +382,17 @@ function formatDate(value: string): string {
               :loading="bulkBusy"
               @click="runBulk((ids) => usersApi.bulkRestore({ ids }))"
             >
-              Restore
+              {{ t('users.restore') }}
             </v-btn>
             <v-spacer />
             <span v-if="bulkResult" class="text-caption text-medium-emphasis">
-              {{ bulkResult.processed }} processed<template v-if="bulkResult.skipped.length"
-                >, {{ bulkResult.skipped.length }} skipped ({{
-                  bulkResult.skipped[0].reason
+              {{ t('users.bulkProcessed', { count: bulkResult.processed })
+              }}<template v-if="bulkResult.skipped.length"
+                >{{
+                  t('users.bulkSkipped', {
+                    count: bulkResult.skipped.length,
+                    reason: bulkResult.skipped[0].reason,
+                  })
                 }}<template v-if="bulkResult.skipped.length > 1">, …</template>)</template
               >
             </span>
@@ -439,26 +445,26 @@ function formatDate(value: string): string {
               <v-list-item
                 v-can="'users:view'"
                 prepend-icon="mdi-history"
-                title="Audit trail"
+                :title="t('users.auditTrail')"
                 @click="openAudit(item)"
               />
               <v-list-item
                 v-if="can('users:archive') && !item.status.isArchivedState && !item.status.isDeletedState"
                 prepend-icon="mdi-archive"
-                title="Archive"
+                :title="t('users.archive')"
                 :disabled="isSelf(item)"
                 @click="rowAction(item, () => usersApi.archive(item.id))"
               />
               <v-list-item
                 v-if="can('users:restore') && (item.status.isArchivedState || item.status.isDeletedState)"
                 prepend-icon="mdi-restore"
-                title="Restore"
+                :title="t('users.restore')"
                 @click="rowAction(item, () => usersApi.restore(item.id))"
               />
               <v-list-item
                 v-if="can('users:delete') && !item.status.isDeletedState"
                 prepend-icon="mdi-delete"
-                title="Delete (soft)"
+                :title="t('users.deleteSoft')"
                 :disabled="isSelf(item)"
                 @click="deleteTarget = item"
               />
@@ -466,7 +472,7 @@ function formatDate(value: string): string {
                 v-if="can('users:purge') && item.status.isDeletedState"
                 prepend-icon="mdi-delete-forever"
                 base-color="error"
-                title="Delete permanently"
+                :title="t('users.deletePermanently')"
                 @click="purgeTarget = item"
               />
             </v-list>
@@ -489,16 +495,17 @@ function formatDate(value: string): string {
     <!-- Soft delete confirmation -->
     <v-dialog :model-value="!!deleteTarget" max-width="440" @update:model-value="deleteTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete user</v-card-title>
+        <v-card-title class="text-h6">{{ t('users.deleteUserTitle') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.fullName }}</strong> ({{ deleteTarget?.email }})? The
-          account is soft-deleted: it is hidden and blocked from logging in, but can be restored
-          later.
+          <i18n-t keypath="users.deleteConfirmBody" tag="span">
+            <template #name><strong>{{ deleteTarget?.fullName }}</strong></template>
+            <template #email>{{ deleteTarget?.email }}</template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmDelete">{{ t('common.delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -506,15 +513,18 @@ function formatDate(value: string): string {
     <!-- Permanent delete confirmation -->
     <v-dialog :model-value="!!purgeTarget" max-width="440" @update:model-value="purgeTarget = null">
       <v-card rounded="lg">
-        <v-card-title class="text-h6">Delete permanently</v-card-title>
+        <v-card-title class="text-h6">{{ t('users.deletePermanently') }}</v-card-title>
         <v-card-text>
-          Permanently remove <strong>{{ purgeTarget?.fullName }}</strong> ({{ purgeTarget?.email }})?
-          <strong>This cannot be undone.</strong> The audit trail is preserved.
+          <i18n-t keypath="users.purgeConfirmBody" tag="span">
+            <template #name><strong>{{ purgeTarget?.fullName }}</strong></template>
+            <template #email>{{ purgeTarget?.email }}</template>
+            <template #warning><strong>{{ t('users.purgeCannotUndo') }}</strong></template>
+          </i18n-t>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="purgeTarget = null">Cancel</v-btn>
-          <v-btn color="error" :loading="confirming" @click="confirmPurge">Delete forever</v-btn>
+          <v-btn variant="text" @click="purgeTarget = null">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" :loading="confirming" @click="confirmPurge">{{ t('users.deleteForever') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

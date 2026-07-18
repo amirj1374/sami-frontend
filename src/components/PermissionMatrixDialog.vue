@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { permissionsApi } from '@/api/permissions'
 import { rolesApi } from '@/api/roles'
 import { useApiError } from '@/composables/useApiError'
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+const { t } = useI18n()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const loading = ref(false)
 const saving = ref(false)
@@ -126,7 +128,7 @@ async function save() {
   >
     <v-card rounded="lg">
       <v-card-title class="text-h6 pt-4 px-6">
-        Permissions — {{ role?.name }}
+        {{ t('roles.matrixTitle', { name: role?.name }) }}
       </v-card-title>
 
       <v-card-text class="px-6">
@@ -142,8 +144,7 @@ async function save() {
           icon="mdi-shield-crown"
           class="mb-4"
         >
-          This role has unrestricted access: it bypasses all permission checks, so its
-          permission set cannot be edited.
+          {{ t('roles.superAdminNotice') }}
         </v-alert>
 
         <div v-if="loading" class="text-center py-8">
@@ -154,8 +155,8 @@ async function save() {
           <v-table density="comfortable">
             <thead>
               <tr>
-                <th>Module</th>
-                <th class="text-center">All</th>
+                <th>{{ t('roles.matrixModule') }}</th>
+                <th class="text-center">{{ t('common.all') }}</th>
                 <th v-for="action in actions" :key="action" class="text-center text-capitalize">
                   {{ action }}
                 </th>
@@ -190,9 +191,9 @@ async function save() {
 
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="close">Cancel</v-btn>
+        <v-btn variant="text" @click="close">{{ t('common.cancel') }}</v-btn>
         <v-btn color="primary" :loading="saving" :disabled="isSuperAdmin || loading" @click="save">
-          Save
+          {{ t('common.save') }}
         </v-btn>
       </v-card-actions>
     </v-card>
