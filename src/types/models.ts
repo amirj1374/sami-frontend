@@ -80,6 +80,30 @@ export interface AppModule {
   enabled: boolean
   isSystem: boolean
   permissionCount: number
+
+  // Lifecycle (V25)
+  backendStatus?: ModuleStatus | null
+  frontendStatus?: ModuleStatus | null
+  overallStatus?: ModuleStatus | null
+  overallStatusDerived?: boolean
+  progressPercentage?: number
+  releaseVersion?: string | null
+  developmentNotes?: string | null
+  available?: boolean
+  productionReady?: boolean
+  showPlaceholder?: boolean
+}
+
+/** Payload for PATCH /v1/modules/{id}/lifecycle. */
+export interface UpdateModuleLifecyclePayload {
+  backendStatusCode: string
+  frontendStatusCode: string
+  overallStatusCode?: string | null
+  progressPercentage: number
+  releaseVersion?: string | null
+  developmentNotes?: string | null
+  available: boolean
+  productionReady: boolean
 }
 
 /** A single permission (`code` = `<module>:<action>`). */
@@ -102,7 +126,33 @@ export interface MenuItem {
   icon: string
   path: string
   displayOrder: number
+
+  // Lifecycle (V25). Optional so the app still works against a backend that
+  // predates the field — the UI falls back to its previous behaviour.
+  backendStatus?: ModuleStatus | null
+  frontendStatus?: ModuleStatus | null
+  overallStatus?: ModuleStatus | null
+  overallStatusDerived?: boolean
+  progressPercentage?: number
+  releaseVersion?: string | null
+  /** Backend's verdict on whether to render the placeholder. */
+  showPlaceholder?: boolean
+  navigable?: boolean
 }
+/** A configurable module lifecycle stage, as returned by the backend. */
+export interface ModuleStatus {
+  code: string
+  name: string
+  description: string | null
+  color: string | null
+  icon: string | null
+  lifecycleRank: number
+  navigable: boolean
+  showsPlaceholder: boolean
+  productionReady: boolean
+  terminal: boolean
+}
+
 
 /** Permissions grouped per module, as used by the role permission matrix. */
 export interface ModulePermissionsGroup {

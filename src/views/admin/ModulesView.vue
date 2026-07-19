@@ -7,7 +7,7 @@ import { moduleSchema } from '@/schemas/admin'
 import { modulesApi } from '@/api/modules'
 import { useApiError } from '@/composables/useApiError'
 import type { PageQuery } from '@/types/api'
-import type { AppModule } from '@/types/models'
+import type { AppModule, ModuleStatus } from '@/types/models'
 
 const { t } = useI18n()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
@@ -32,11 +32,93 @@ const headers = [
   { title: t('modules.order'), key: 'displayOrder', align: 'end' as const },
   { title: t('modules.name'), key: 'name' },
   { title: t('modules.code'), key: 'code' },
-  { title: t('modules.path'), key: 'path', sortable: false },
+  { title: t('modules.lifecycle.column'), key: 'lifecycle', sortable: false },
   { title: t('modules.permissions'), key: 'permissionCount', sortable: false, align: 'end' as const },
   { title: t('modules.enabled'), key: 'enabled', sortable: false },
   { title: '', key: 'actions', sortable: false, align: 'end' as const },
 ]
+
+// ---------------------------------------------------------------------
+// Lifecycle management
+//
+// The stage list comes from the backend so the dropdowns reflect whatever
+// module_statuses holds; adding a stage needs no frontend change. Each
+// dropdown is filtered to the stages valid for its axis, which is why the
+// backend also rejects an invalid pair — the UI narrows, the API enforces.
+// ---------------------------------------------------------------------
+const lifecycleStatuses = ref<ModuleStatus[]>([])
+const lifecycleOpen = ref(false)
+const lifecycleTarget = ref<AppModule | null>(null)
+const lifecycleSaving = ref(false)
+const lifecycleForm = ref({
+  backendStatusCode: '',
+  frontendStatusCode: '',
+  overallStatusCode: '' as string | null,
+  progressPercentage: 0,
+  releaseVersion: '',
+  developmentNotes: '',
+  available: true,
+  productionReady: false,
+})
+
+/**
+ * A stage is offered for an axis only when the backend says it applies there:
+ * BACKEND_READY is meaningless as a frontend state. `lifecycleRank` gives the
+ * ordering, so the list reads as a progression rather than alphabetically.
+ */
+const backendStageOptions = computed(() =>
+  [...lifecycleStatuses.value].sort((a, b) => a.lifecycleRank - b.lifecycleRank))
+const frontendStageOptions = computed(() =>
+  [...lifecycleStatuses.value].sort((a, b) => a.lifecycleRank - b.lifecycleRank))
+
+async function loadLifecycleStatuses() {
+  if (lifecycleStatuses.value.length) return
+  try {
+    lifecycleStatuses.value = await modulesApi.lifecycleStatuses()
+  } catch {
+    // Non-fatal: the dialog simply offers no options and the table still
+    // renders. Surfacing an error here would block module administration
+    // over a secondary feature.
+    lifecycleStatuses.value = []
+  }
+}
+
+async function openLifecycle(module: AppModule) {
+  await loadLifecycleStatuses()
+  lifecycleTarget.value = module
+  lifecycleForm.value = {
+    backendStatusCode: module.backendStatus?.code ?? '',
+    frontendStatusCode: module.frontendStatus?.code ?? '',
+    // Empty means "derive"; the backend clears the override on a blank code.
+    overallStatusCode: module.overallStatusDerived ? '' : (module.overallStatus?.code ?? ''),
+    progressPercentage: module.progressPercentage ?? 0,
+    releaseVersion: module.releaseVersion ?? '',
+    developmentNotes: module.developmentNotes ?? '',
+    available: module.available ?? true,
+    productionReady: module.productionReady ?? false,
+  }
+  lifecycleOpen.value = true
+}
+
+async function saveLifecycle() {
+  if (!lifecycleTarget.value) return
+  lifecycleSaving.value = true
+  clearError()
+  try {
+    await modulesApi.updateLifecycle(lifecycleTarget.value.id, {
+      ...lifecycleForm.value,
+      overallStatusCode: lifecycleForm.value.overallStatusCode || null,
+      releaseVersion: lifecycleForm.value.releaseVersion || null,
+      developmentNotes: lifecycleForm.value.developmentNotes || null,
+    })
+    lifecycleOpen.value = false
+    await loadItems(lastOptions.value)
+  } catch (e) {
+    setError(e)
+  } finally {
+    lifecycleSaving.value = false
+  }
+}
 
 async function loadItems(options: TableOptions) {
   lastOptions.value = options
@@ -239,8 +321,28 @@ async function confirmDelete() {
         <template #[`item.code`]="{ item }">
           <code>{{ item.code }}</code>
         </template>
-        <template #[`item.path`]="{ item }">
-          <code>{{ item.path }}</code>
+        <template #[`item.lifecycle`]="{ item }">
+          <div v-if="item.overallStatus" class="d-flex align-center ga-2">
+            <v-chip
+              size="small"
+              variant="tonal"
+              :color="item.overallStatus.color ?? undefined"
+              :prepend-icon="item.overallStatus.icon ?? undefined"
+            >
+              {{ item.overallStatus.name }}
+            </v-chip>
+            <span class="text-caption text-medium-emphasis">
+              {{ item.backendStatus?.name }} / {{ item.frontendStatus?.name }}
+            </span>
+            <v-progress-linear
+              :model-value="item.progressPercentage ?? 0"
+              :color="item.overallStatus.color ?? 'primary'"
+              height="4"
+              rounded
+              style="max-width: 60px"
+            />
+          </div>
+          <code v-else>{{ item.path }}</code>
         </template>
         <template #[`item.enabled`]="{ item }">
           <v-switch
@@ -263,6 +365,14 @@ async function confirmDelete() {
             variant="text"
             :title="t('common.edit')"
             @click="openEdit(item)"
+          />
+          <v-btn
+            v-can="'modules:edit'"
+            icon="mdi-progress-wrench"
+            size="small"
+            variant="text"
+            :title="t('modules.lifecycle.manage')"
+            @click="openLifecycle(item)"
           />
           <v-btn
             v-can="'modules:delete'"
@@ -367,6 +477,116 @@ async function confirmDelete() {
           <v-spacer />
           <v-btn variant="text" @click="formOpen = false">{{ t('common.cancel') }}</v-btn>
           <v-btn color="primary" :loading="saving" @click="onSubmit">{{ t('common.save') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+
+    <!-- Lifecycle management -->
+    <v-dialog v-model="lifecycleOpen" max-width="620">
+      <v-card rounded="lg">
+        <v-card-title class="text-h6 pt-4 px-6">
+          {{ t('modules.lifecycle.title', { name: lifecycleTarget?.name ?? '' }) }}
+        </v-card-title>
+        <v-card-text class="px-6">
+          <v-row dense>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="lifecycleForm.backendStatusCode"
+                :items="backendStageOptions.filter((s) => s.code !== 'FRONTEND_READY')"
+                item-title="name"
+                item-value="code"
+                :label="t('modules.lifecycle.backendStatus')"
+                density="comfortable"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="lifecycleForm.frontendStatusCode"
+                :items="frontendStageOptions.filter((s) => s.code !== 'BACKEND_READY')"
+                item-title="name"
+                item-value="code"
+                :label="t('modules.lifecycle.frontendStatus')"
+                density="comfortable"
+                variant="outlined"
+              />
+            </v-col>
+
+            <v-col cols="12">
+              <v-select
+                v-model="lifecycleForm.overallStatusCode"
+                :items="[{ name: t('modules.lifecycle.derived'), code: '' }, ...backendStageOptions]"
+                item-title="name"
+                item-value="code"
+                :label="t('modules.lifecycle.overallStatus')"
+                :hint="t('modules.lifecycle.overallHint')"
+                persistent-hint
+                density="comfortable"
+                variant="outlined"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="8">
+              <v-slider
+                v-model="lifecycleForm.progressPercentage"
+                :label="t('modules.lifecycle.progress')"
+                :min="0"
+                :max="100"
+                :step="5"
+                thumb-label
+                class="mt-4"
+              />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model="lifecycleForm.releaseVersion"
+                :label="t('modules.lifecycle.releaseVersion')"
+                density="comfortable"
+                variant="outlined"
+                placeholder="1.4.0"
+              />
+            </v-col>
+
+            <v-col cols="12">
+              <v-textarea
+                v-model="lifecycleForm.developmentNotes"
+                :label="t('modules.lifecycle.notes')"
+                rows="2"
+                auto-grow
+                density="comfortable"
+                variant="outlined"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6">
+              <v-switch
+                v-model="lifecycleForm.available"
+                :label="t('modules.lifecycle.available')"
+                color="primary"
+                density="compact"
+                hide-details
+                inset
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-switch
+                v-model="lifecycleForm.productionReady"
+                :label="t('modules.lifecycle.productionReady')"
+                color="primary"
+                density="compact"
+                hide-details
+                inset
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="lifecycleOpen = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" variant="flat" :loading="lifecycleSaving" @click="saveLifecycle">
+            {{ t('common.save') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

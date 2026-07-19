@@ -13,6 +13,21 @@ import { MOCK_MODE } from '@/mocks/config'
  * layout pointing at the placeholder view — a module created in the admin
  * panel becomes navigable without a code change. `reset()` (called on logout)
  * clears the items and removes those dynamic routes again.
+ *
+ * ## Where module status comes from
+ *
+ * Route registration answers a PHYSICAL question — does a Vue screen exist in
+ * this bundle? It no longer decides what the user is TOLD. That is the
+ * module's lifecycle status, supplied by the backend on each menu item and
+ * rendered by `PlaceholderView`.
+ *
+ * The distinction matters because the two disagree constantly: modules with
+ * complete, tested backends have no screens yet, and a module created at
+ * runtime has neither. Both used to render the identical "ready for
+ * development" message.
+ *
+ * Registration therefore stays exactly as it was — it is the fallback that
+ * guarantees a module can never 404 — while the message became data.
  */
 export const useMenuStore = defineStore('menu', () => {
   const items = ref<MenuItem[]>([])
@@ -45,7 +60,16 @@ export const useMenuStore = defineStore('menu', () => {
     loaded.value = true
   }
 
-  /** Adds a placeholder route for a menu path no static route covers. */
+  /**
+   * Adds a placeholder route for a menu path no static route covers.
+   *
+   * Deliberately does NOT consult the lifecycle status. A static route means
+   * the screen physically exists in this bundle, which is a stronger fact than
+   * a status column that may be stale; overriding it would let an out-of-date
+   * row hide working UI. Conversely a module the backend calls ACTIVE still
+   * gets the placeholder when no screen exists, because there is nothing else
+   * to render.
+   */
   function registerDynamicRoute(item: MenuItem): void {
     const resolved = router.resolve(item.path)
     if (resolved.name && resolved.name !== 'not-found') {
@@ -72,5 +96,28 @@ export const useMenuStore = defineStore('menu', () => {
     dynamicRouteNames.length = 0
   }
 
-  return { items, loaded, load, reset }
+  /**
+   * The menu entry for a path, used by `PlaceholderView` to read the module's
+   * lifecycle status.
+   */
+  function byPath(path: string): MenuItem | null {
+    return items.value.find((item) => item.path === path) ?? null
+  }
+
+  /**
+   * Whether a module should be presented as not-yet-usable.
+   *
+   * Prefers the backend's verdict; falls back to "no static route exists" so
+   * the UI still behaves sensibly against a backend that predates the
+   * lifecycle fields.
+   */
+  function showsPlaceholder(item: MenuItem): boolean {
+    if (typeof item.showPlaceholder === 'boolean') {
+      return item.showPlaceholder
+    }
+    const resolved = router.resolve(item.path)
+    return !resolved.name || resolved.name === 'not-found'
+  }
+
+  return { items, loaded, load, reset, byPath, showsPlaceholder }
 })
