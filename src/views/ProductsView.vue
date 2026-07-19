@@ -109,7 +109,7 @@ async function confirmDelete() {
 }
 
 function formatPrice(value: number): string {
-  return formatNumber(value, { style: 'currency', currency: 'USD' })
+  return `${formatNumber(value)} ${t('common.currency')}`
 }
 </script>
 
