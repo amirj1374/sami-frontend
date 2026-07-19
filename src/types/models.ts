@@ -813,6 +813,289 @@ export interface SupplierLogEntry {
   occurredAt: string
 }
 
+// --- Dashboards & KPIs -----------------------------------------------------
+
+export interface DashboardRow {
+  id: number
+  code: string
+  name: string
+  description: string | null
+  ownerId: number | null
+  roleId: number | null
+  roleName: string | null
+  statusId: number
+  statusCode: string
+  statusName: string
+  visibilityId: number
+  visibilityCode: string
+  visibilityName: string
+  isDefault: boolean
+  favorite: boolean
+  canEdit: boolean
+  createdAt: string
+  updatedAt: string
+  version: number
+}
+
+export interface DashboardWidget {
+  id: number
+  code: string
+  widgetTypeId: number
+  widgetTypeCode: string
+  chartTypeId: number | null
+  chartTypeCode: string | null
+  kpiId: number | null
+  title: string
+  description: string | null
+  dataSourceId: number | null
+  dataSourceCode: string | null
+  refreshPolicyId: number | null
+  refreshPolicyCode: string | null
+  refreshIntervalSeconds: number
+  positionX: number
+  positionY: number
+  width: number
+  height: number
+  requiredPermission: string | null
+  config: Record<string, unknown>
+  version: number
+}
+
+export interface DashboardDetail {
+  dashboard: DashboardRow
+  widgets: DashboardWidget[]
+}
+
+export interface WidgetDataPoint {
+  label: string
+  value: number
+}
+
+export interface WidgetData {
+  kind: 'SCALAR' | 'SERIES' | 'TABLE' | 'ROWS' | 'EMPTY'
+  value?: number | null
+  series?: WidgetDataPoint[]
+  columns?: string[]
+  rows?: Record<string, unknown>[]
+  meta?: Record<string, unknown>
+}
+
+export interface WidgetDataResponse {
+  widgetId: number
+  code: string
+  widgetTypeCode: string
+  chartTypeCode: string | null
+  title: string
+  refreshIntervalSeconds: number
+  config: Record<string, unknown>
+  data: WidgetData
+  error: string | null
+}
+
+export interface DashboardRefreshContext {
+  companyId?: number
+  branchId?: number
+  salespersonId?: number
+  from?: string
+  to?: string
+  filters?: Record<string, unknown>
+}
+
+export interface DashboardStatus {
+  id: number
+  code: string
+  name: string
+  isDefault: boolean
+  isActiveState: boolean
+  isArchivedState: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardVisibility {
+  id: number
+  code: string
+  name: string
+  isDefault: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardWidgetType {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  chartCapable: boolean
+  active: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardDataSource {
+  id: number
+  code: string
+  name: string
+  providerKey: string
+  available: boolean
+  active: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardCreatePayload {
+  code: string
+  name: string
+  description?: string
+  statusId?: number
+  visibilityId?: number
+  roleId?: number
+  expectedVersion?: number
+}
+
+export interface KpiThreshold {
+  id?: number
+  levelName: string
+  color: string | null
+  minValue: number | null
+  maxValue: number | null
+  sortOrder: number
+}
+
+export interface Kpi {
+  id: number
+  code: string
+  name: string
+  description: string | null
+  calculationMethod: string
+  formula: string | null
+  aggregation: string
+  dataSourceId: number | null
+  dataSourceCode: string | null
+  refreshPolicyId: number | null
+  refreshPolicyCode: string | null
+  targetValue: number | null
+  unit: string | null
+  statusId: number
+  statusCode: string
+  statusName: string
+  ownerId: number | null
+  version: number
+  thresholds: KpiThreshold[]
+  latestValue: number | null
+  latestThresholdLevel: string | null
+  latestComputedAt: string | null
+}
+
+export interface KpiPayload {
+  code: string
+  name: string
+  description?: string
+  calculationMethod: string
+  formula?: string
+  aggregation: string
+  dataSourceId?: number
+  refreshPolicyId?: number
+  targetValue?: number
+  unit?: string
+  statusId?: number
+  thresholds?: Omit<KpiThreshold, 'id'>[]
+  expectedVersion?: number
+}
+
+export interface KpiValueEntry {
+  value: number
+  periodKey: string
+  thresholdLevel: string | null
+  computedAt: string
+}
+
+export interface KpiCalculation {
+  kpiId: number
+  code: string
+  value: number
+  thresholdLevel: string | null
+  target: number | null
+  attainmentPercent: number | null
+  computedAt: string
+}
+
+export interface DashboardShare {
+  id: number
+  targetType: 'USER' | 'ROLE'
+  targetUserId: number | null
+  targetUserEmail: string | null
+  targetRoleId: number | null
+  targetRoleName: string | null
+  canEdit: boolean
+  createdAt: string
+}
+
+export interface DashboardSavedFilter {
+  id: number
+  name: string
+  filter: Record<string, unknown>
+}
+
+export interface DashboardKpiStatus {
+  id: number
+  code: string
+  name: string
+  isDefault: boolean
+  isActiveState: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardChartType {
+  id: number
+  code: string
+  name: string
+  active: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardRefreshPolicy {
+  id: number
+  code: string
+  name: string
+  intervalSeconds: number
+  isDefault: boolean
+  isSystem: boolean
+  displayOrder: number
+}
+
+export interface DashboardWidgetPayload {
+  code: string
+  widgetTypeId: number
+  chartTypeId?: number
+  kpiId?: number
+  title: string
+  description?: string
+  dataSourceId?: number
+  refreshPolicyId?: number
+  positionX: number
+  positionY: number
+  width: number
+  height: number
+  requiredPermission?: string
+  config?: Record<string, unknown>
+  expectedVersion?: number
+}
+
+export interface DashboardAuditEntry {
+  id: number
+  entityType: string
+  entityId: number | null
+  action: string
+  oldValues: Record<string, unknown> | null
+  newValues: Record<string, unknown> | null
+  actorId: number | null
+  actorEmail: string | null
+  createdAt: string
+}
+
 // --- Purchasing ------------------------------------------------------------
 
 export interface PurStatus {

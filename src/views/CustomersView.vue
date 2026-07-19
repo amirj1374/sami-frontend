@@ -5,6 +5,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { customersApi, type CustomerListParams } from '@/api/customers'
 import { crmConfigApi } from '@/api/crmConfig'
 import { usePermission } from '@/composables/usePermission'
+import { useServerLabel } from '@/composables/useServerLabel'
 import { useApiError } from '@/composables/useApiError'
 import { useFormat } from '@/composables/useFormat'
 import CustomerFormDialog from '@/components/CustomerFormDialog.vue'
@@ -25,6 +26,7 @@ import type {
 const { t } = useI18n()
 const { formatDate } = useFormat()
 const { can } = usePermission()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 // --- Reference data ---------------------------------------------------------
@@ -413,11 +415,11 @@ function statusColor(status: CustomerStatus): string {
           </div>
         </template>
         <template #[`item.type`]="{ item }">
-          <v-chip size="small" variant="tonal">{{ item.type.name }}</v-chip>
+          <v-chip size="small" variant="tonal">{{ srvLabel(item.type.name) }}</v-chip>
         </template>
         <template #[`item.status`]="{ item }">
           <v-chip :color="statusColor(item.status)" size="small" variant="tonal">
-            {{ item.status.name }}
+            {{ srvLabel(item.status.name) }}
           </v-chip>
         </template>
         <template #[`item.tags`]="{ item }">
@@ -429,7 +431,7 @@ function statusColor(status: CustomerStatus): string {
             :color="tag.color ?? undefined"
             class="mr-1"
           >
-            {{ tag.name }}
+            {{ srvLabel(tag.name) }}
           </v-chip>
           <span v-if="item.tags.length > 3" class="text-caption">+{{ item.tags.length - 3 }}</span>
         </template>

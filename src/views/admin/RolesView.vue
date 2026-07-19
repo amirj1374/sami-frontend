@@ -6,11 +6,13 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { duplicateRoleSchema, roleSchema } from '@/schemas/admin'
 import { rolesApi } from '@/api/roles'
 import { useApiError } from '@/composables/useApiError'
+import { useServerLabel } from '@/composables/useServerLabel'
 import PermissionMatrixDialog from '@/components/PermissionMatrixDialog.vue'
 import type { PageQuery } from '@/types/api'
 import type { Role } from '@/types/models'
 
 const { t } = useI18n()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 // --- Table state ----------------------------------------------------------
@@ -214,6 +216,9 @@ async function confirmDelete() {
         :items-per-page="10"
         @update:options="loadItems"
       >
+        <template #[`item.name`]="{ item }">
+          <span class="font-weight-medium">{{ srvLabel(item.name) }}</span>
+        </template>
         <template #[`item.description`]="{ item }">
           <span class="text-medium-emphasis">{{ item.description ?? '—' }}</span>
         </template>

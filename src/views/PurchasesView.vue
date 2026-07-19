@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { purchasesApi, purchasingConfigApi, type PurchaseListParams } from '@/api/purchases'
 import { usePermission } from '@/composables/usePermission'
+import { useServerLabel } from '@/composables/useServerLabel'
 import { useApiError } from '@/composables/useApiError'
 import { useFormat } from '@/composables/useFormat'
 import PurchaseFormDialog from '@/components/PurchaseFormDialog.vue'
@@ -20,6 +21,7 @@ import type {
 
 const { t } = useI18n()
 const { can } = usePermission()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 const { formatDate } = useFormat()
 
@@ -245,11 +247,11 @@ function statusColor(status: PurStatus): string {
           <div class="text-caption text-medium-emphasis">{{ item.supplierCode }}</div>
         </template>
         <template #[`item.type`]="{ item }">
-          <v-chip size="small" variant="tonal">{{ item.type.name }}</v-chip>
+          <v-chip size="small" variant="tonal">{{ srvLabel(item.type.name) }}</v-chip>
         </template>
         <template #[`item.status`]="{ item }">
           <v-chip :color="statusColor(item.status)" size="small" variant="tonal">
-            {{ item.status.name }}
+            {{ srvLabel(item.status.name) }}
           </v-chip>
         </template>
         <template #[`item.totalAmount`]="{ item }">{{ item.totalAmount.toFixed(2) }}</template>

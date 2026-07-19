@@ -5,6 +5,9 @@ import { suppliersApi } from '@/api/suppliers'
 import { useApiError } from '@/composables/useApiError'
 import { useFormat } from '@/composables/useFormat'
 import { usePermission } from '@/composables/usePermission'
+import { useServerLabel } from '@/composables/useServerLabel'
+import AppFormSection from '@/components/AppFormSection.vue'
+import AppDetailItem from '@/components/AppDetailItem.vue'
 import type {
   SupDocumentType,
   SupRatingCriterion,
@@ -35,7 +38,8 @@ const open = computed({
 
 const { t } = useI18n()
 const { can } = usePermission()
-const { formatDateTime } = useFormat()
+const { formatDateTime, formatNumber } = useFormat()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 const detail = ref<SupplierDetail | null>(null)
@@ -147,9 +151,9 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
       <v-card-title class="text-h6 pt-4 px-6 d-flex align-center flex-wrap">
         {{ row.displayName }}
         <span class="text-body-2 text-medium-emphasis ml-2">{{ row.supplierCode }}</span>
-        <v-chip size="small" variant="tonal" class="ml-3">{{ row.type.name }}</v-chip>
+        <v-chip size="small" variant="tonal" class="ml-3">{{ srvLabel(row.type.name) }}</v-chip>
         <v-chip size="small" variant="tonal" class="ml-2" :color="row.status.isBlocking ? 'error' : 'success'">
-          {{ row.status.name }}
+          {{ srvLabel(row.status.name) }}
         </v-chip>
         <v-spacer />
         <v-rating :model-value="row.ratingAvg ?? 0" density="compact" size="small" half-increments readonly />
@@ -171,43 +175,57 @@ const row = computed<SupplierRow | null>(() => detail.value?.supplier ?? null)
 
         <v-window v-model="tab">
           <v-window-item value="profile">
-            <v-row dense class="text-body-2">
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.company') }}</strong> {{ row.companyName }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.legalName') }}</strong> {{ detail?.legalName ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.owner') }}</strong> {{ detail?.ownerName ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.taxNo') }}</strong> {{ detail?.taxNumber ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.nationalId') }}</strong> {{ detail?.nationalId ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.regNo') }}</strong> {{ detail?.registrationNumber ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.city') }}</strong> {{ row.city ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.paymentTerm') }}</strong> {{ row.paymentTerm?.name ?? '—' }}</v-col>
-              <v-col cols="6" sm="4"><strong>{{ t('suppliers.detail.profile.creditLimit') }}</strong> {{ row.creditLimit ?? '—' }}</v-col>
-              <v-col cols="12"><strong>{{ t('suppliers.detail.profile.website') }}</strong> {{ detail?.website ?? '—' }}</v-col>
-            </v-row>
+            <AppFormSection
+              icon="mdi-office-building-outline"
+              :title="t('suppliers.form.tabs.company')"
+            >
+              <v-row dense>
+                <AppDetailItem :label="t('suppliers.detail.profile.company')" :value="row.companyName" />
+                <AppDetailItem :label="t('suppliers.detail.profile.legalName')" :value="detail?.legalName" />
+                <AppDetailItem :label="t('suppliers.detail.profile.owner')" :value="detail?.ownerName" />
+                <AppDetailItem :label="t('suppliers.detail.profile.taxNo')" :value="detail?.taxNumber" />
+                <AppDetailItem :label="t('suppliers.detail.profile.nationalId')" :value="detail?.nationalId" />
+                <AppDetailItem :label="t('suppliers.detail.profile.regNo')" :value="detail?.registrationNumber" />
+                <AppDetailItem :label="t('suppliers.detail.profile.city')" :value="row.city" icon="mdi-map-marker-outline" />
+                <AppDetailItem :label="t('suppliers.detail.profile.paymentTerm')" :value="srvLabel(row.paymentTerm?.name)" />
+                <AppDetailItem
+                  :label="t('suppliers.detail.profile.creditLimit')"
+                  :value="row.creditLimit != null ? `${formatNumber(row.creditLimit)} ${t('common.currency')}` : ''"
+                />
+                <AppDetailItem :label="t('suppliers.detail.profile.website')" :value="detail?.website" icon="mdi-web" :cols="12" :sm="12" :md="8" />
+              </v-row>
+            </AppFormSection>
 
-            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.channels') }}</p>
-            <div v-for="(channel, i) in detail?.channels" :key="'ch' + i" class="text-body-2">
-              <v-icon :icon="channel.kind === 'PHONE' ? 'mdi-phone' : 'mdi-email'" size="x-small" />
-              {{ channel.value }}
-              <v-chip v-if="channel.isDefault" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.default') }}</v-chip>
-            </div>
+            <AppFormSection icon="mdi-phone-outline" :title="t('suppliers.detail.profile.channels')">
+              <div v-if="!detail?.channels?.length" class="text-body-2 text-medium-emphasis">—</div>
+              <div v-for="(channel, i) in detail?.channels" :key="'ch' + i" class="d-flex align-center ga-2 py-1 text-body-2">
+                <v-icon :icon="channel.kind === 'PHONE' ? 'mdi-phone' : 'mdi-email-outline'" size="18" class="text-medium-emphasis" />
+                <span class="font-weight-medium">{{ channel.value }}</span>
+                <v-chip v-if="channel.isDefault" size="x-small" variant="tonal" label>{{ t('suppliers.contacts.default') }}</v-chip>
+              </div>
+            </AppFormSection>
 
-            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.contactPersons') }}</p>
-            <div v-for="(contact, i) in detail?.contacts" :key="'co' + i" class="text-body-2">
-              {{ contact.fullName }}
-              <span class="text-caption text-medium-emphasis">
-                {{ [contact.position, contact.mobile ?? contact.phone, contact.email].filter(Boolean).join(' · ') }}
-              </span>
-              <v-chip v-if="contact.isPrimary" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.primary') }}</v-chip>
-            </div>
+            <AppFormSection icon="mdi-account-tie-outline" :title="t('suppliers.detail.profile.contactPersons')">
+              <div v-if="!detail?.contacts?.length" class="text-body-2 text-medium-emphasis">—</div>
+              <div v-for="(contact, i) in detail?.contacts" :key="'co' + i" class="d-flex align-center flex-wrap ga-2 py-1 text-body-2">
+                <span class="font-weight-medium">{{ contact.fullName }}</span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ [contact.position, contact.mobile ?? contact.phone, contact.email].filter(Boolean).join(' · ') }}
+                </span>
+                <v-chip v-if="contact.isPrimary" size="x-small" variant="tonal" label>{{ t('suppliers.contacts.primary') }}</v-chip>
+              </div>
+            </AppFormSection>
 
-            <p class="text-subtitle-2 mt-4 mb-1">{{ t('suppliers.detail.profile.bankAccounts') }}</p>
-            <div v-for="(bank, i) in detail?.bankAccounts" :key="'b' + i" class="text-body-2">
-              {{ bank.bankName }}
-              <span class="text-caption text-medium-emphasis">
-                {{ [bank.iban, bank.accountNumber, bank.accountHolder].filter(Boolean).join(' · ') }}
-              </span>
-              <v-chip v-if="bank.isDefault" size="x-small" variant="tonal" class="ml-1">{{ t('suppliers.contacts.default') }}</v-chip>
-            </div>
+            <AppFormSection icon="mdi-bank-outline" :title="t('suppliers.detail.profile.bankAccounts')">
+              <div v-if="!detail?.bankAccounts?.length" class="text-body-2 text-medium-emphasis">—</div>
+              <div v-for="(bank, i) in detail?.bankAccounts" :key="'b' + i" class="d-flex align-center flex-wrap ga-2 py-1 text-body-2">
+                <span class="font-weight-medium">{{ bank.bankName }}</span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ [bank.iban, bank.accountNumber, bank.accountHolder].filter(Boolean).join(' · ') }}
+                </span>
+                <v-chip v-if="bank.isDefault" size="x-small" variant="tonal" label>{{ t('suppliers.contacts.default') }}</v-chip>
+              </div>
+            </AppFormSection>
           </v-window-item>
 
           <v-window-item value="rating">

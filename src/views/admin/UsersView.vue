@@ -8,6 +8,7 @@ import { userStatusesApi } from '@/api/userStatuses'
 import { profileFieldsApi } from '@/api/profileFields'
 import { useAuthStore } from '@/stores/auth'
 import { usePermission } from '@/composables/usePermission'
+import { useServerLabel } from '@/composables/useServerLabel'
 import { useApiError } from '@/composables/useApiError'
 import UserFormDialog from '@/components/UserFormDialog.vue'
 import UserAuditDialog from '@/components/UserAuditDialog.vue'
@@ -23,6 +24,7 @@ const { t } = useI18n()
 const { formatDate } = useFormat()
 const auth = useAuthStore()
 const { can } = usePermission()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 /** The signed-in admin cannot act on their own account from this screen. */
@@ -413,12 +415,12 @@ function statusColor(status: UserStatus): string {
       >
         <template #[`item.role`]="{ item }">
           <v-chip :color="item.role.isSuperAdmin ? 'primary' : 'default'" size="small" variant="tonal">
-            {{ item.role.name }}
+            {{ srvLabel(item.role.name) }}
           </v-chip>
         </template>
         <template #[`item.status`]="{ item }">
           <v-chip :color="statusColor(item.status)" size="small" variant="tonal">
-            {{ item.status.name }}
+            {{ srvLabel(item.status.name) }}
           </v-chip>
         </template>
         <template #[`item.createdAt`]="{ item }">{{ formatDate(item.createdAt) }}</template>

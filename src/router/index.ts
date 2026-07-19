@@ -29,6 +29,30 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'dashboards',
+        name: 'dashboards',
+        component: () => import('@/views/DashboardsView.vue'),
+        meta: { requiresAuth: true, permission: 'dashboards:view' },
+      },
+      {
+        path: 'dashboards/reports',
+        name: 'dashboard-reports',
+        component: () => import('@/views/DashboardReportsView.vue'),
+        meta: { requiresAuth: true, permission: 'dashboards:view' },
+      },
+      {
+        path: 'dashboards/:id(\\d+)',
+        name: 'dashboard-viewer',
+        component: () => import('@/views/DashboardViewerView.vue'),
+        meta: { requiresAuth: true, permission: 'dashboards:view' },
+      },
+      {
+        path: 'kpis',
+        name: 'kpis',
+        component: () => import('@/views/KpisView.vue'),
+        meta: { requiresAuth: true, permission: 'dashboards:view' },
+      },
+      {
         path: 'products',
         name: 'products',
         component: () => import('@/views/ProductsView.vue'),

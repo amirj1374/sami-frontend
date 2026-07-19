@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { suppliersApi, supplierConfigApi, type SupplierListParams } from '@/api/suppliers'
 import { usePermission } from '@/composables/usePermission'
+import { useServerLabel } from '@/composables/useServerLabel'
 import { useApiError } from '@/composables/useApiError'
 import SupplierFormDialog from '@/components/SupplierFormDialog.vue'
 import SupplierDetailDialog from '@/components/SupplierDetailDialog.vue'
@@ -21,6 +22,7 @@ import type {
 
 const { t } = useI18n()
 const { can } = usePermission()
+const { text: srvLabel } = useServerLabel()
 const { message: errorMessage, set: setError, clear: clearError } = useApiError()
 
 // --- Reference data ---------------------------------------------------------
@@ -339,11 +341,11 @@ function statusColor(status: SupStatus): string {
           <div class="text-caption text-medium-emphasis">{{ item.companyName }}</div>
         </template>
         <template #[`item.type`]="{ item }">
-          <v-chip size="small" variant="tonal">{{ item.type.name }}</v-chip>
+          <v-chip size="small" variant="tonal">{{ srvLabel(item.type.name) }}</v-chip>
         </template>
         <template #[`item.status`]="{ item }">
           <v-chip :color="statusColor(item.status)" size="small" variant="tonal">
-            {{ item.status.name }}
+            {{ srvLabel(item.status.name) }}
           </v-chip>
         </template>
         <template #[`item.ratingAvg`]="{ item }">
