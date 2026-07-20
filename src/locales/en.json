@@ -289,7 +289,16 @@
       "releaseVersion": "Release version",
       "notes": "Development notes",
       "available": "Available",
-      "productionReady": "Production ready"
+      "productionReady": "Production ready",
+      "validation": {
+        "backendRequired": "Backend status is required",
+        "frontendRequired": "Frontend status is required",
+        "notBackendAxis": "\"{name}\" is not valid for the backend axis",
+        "notFrontendAxis": "\"{name}\" is not valid for the frontend axis",
+        "progressRange": "Progress must be between 0 and 100",
+        "tooLong": "Maximum {max} characters",
+        "notProductionReady": "Cannot be production ready while neither axis is"
+      }
     }
   },
   "permissions": {

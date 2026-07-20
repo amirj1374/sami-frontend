@@ -289,7 +289,16 @@
       "releaseVersion": "نسخهٔ انتشار",
       "notes": "یادداشت‌های توسعه",
       "available": "در دسترس",
-      "productionReady": "آمادهٔ بهره‌برداری"
+      "productionReady": "آمادهٔ بهره‌برداری",
+      "validation": {
+        "backendRequired": "وضعیت بک‌اند الزامی است",
+        "frontendRequired": "وضعیت رابط کاربری الزامی است",
+        "notBackendAxis": "«{name}» برای محور بک‌اند معتبر نیست",
+        "notFrontendAxis": "«{name}» برای محور رابط کاربری معتبر نیست",
+        "progressRange": "درصد پیشرفت باید بین ۰ تا ۱۰۰ باشد",
+        "tooLong": "حداکثر {max} کاراکتر مجاز است",
+        "notProductionReady": "تا زمانی که هیچ‌یک از محورها آمادهٔ بهره‌برداری نباشد، این گزینه قابل انتخاب نیست"
+      }
     }
   },
   "permissions": {

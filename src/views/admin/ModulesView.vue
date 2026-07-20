@@ -62,14 +62,62 @@ const lifecycleForm = ref({
 })
 
 /**
- * A stage is offered for an axis only when the backend says it applies there:
- * BACKEND_READY is meaningless as a frontend state. `lifecycleRank` gives the
- * ordering, so the list reads as a progression rather than alphabetically.
+ * A stage is offered for an axis only when the backend says it applies there
+ * (`appliesToBackend` / `appliesToFrontend`). No stage code is named here, so
+ * adding or reordering a lifecycle stage in `module_statuses` needs no
+ * frontend change. `lifecycleRank` orders the list as a progression.
  */
-const backendStageOptions = computed(() =>
-  [...lifecycleStatuses.value].sort((a, b) => a.lifecycleRank - b.lifecycleRank))
-const frontendStageOptions = computed(() =>
-  [...lifecycleStatuses.value].sort((a, b) => a.lifecycleRank - b.lifecycleRank))
+const byRank = (a: ModuleStatus, b: ModuleStatus) => a.lifecycleRank - b.lifecycleRank
+
+const stagesFor = (axis: 'backend' | 'frontend') =>
+  lifecycleStatuses.value
+    .filter((s) => (axis === 'backend' ? s.appliesToBackend : s.appliesToFrontend))
+    .sort(byRank)
+
+const backendStageOptions = computed(() => stagesFor('backend'))
+const frontendStageOptions = computed(() => stagesFor('frontend'))
+/** The overall override may be pinned to any stage, so it is unfiltered. */
+const overallStageOptions = computed(() => [...lifecycleStatuses.value].sort(byRank))
+
+// --- Lifecycle form validation -------------------------------------------
+const MAX_RELEASE_VERSION = 32
+const MAX_NOTES = 2000
+
+/**
+ * Validation mirrors the backend's own rules so the user is told before the
+ * request rather than by a 400. Applicability is read from the status flags,
+ * never from stage codes.
+ */
+const lifecycleErrors = computed(() => {
+  const e: Record<string, string> = {}
+  const f = lifecycleForm.value
+  const find = (code: string) => lifecycleStatuses.value.find((s) => s.code === code)
+
+  if (!f.backendStatusCode) e.backend = t('modules.lifecycle.validation.backendRequired')
+  if (!f.frontendStatusCode) e.frontend = t('modules.lifecycle.validation.frontendRequired')
+
+  const be = find(f.backendStatusCode)
+  const fe = find(f.frontendStatusCode)
+  if (be && !be.appliesToBackend) e.backend = t('modules.lifecycle.validation.notBackendAxis', { name: be.name })
+  if (fe && !fe.appliesToFrontend) e.frontend = t('modules.lifecycle.validation.notFrontendAxis', { name: fe.name })
+
+  if (f.progressPercentage < 0 || f.progressPercentage > 100) {
+    e.progress = t('modules.lifecycle.validation.progressRange')
+  }
+  if ((f.releaseVersion ?? '').length > MAX_RELEASE_VERSION) {
+    e.releaseVersion = t('modules.lifecycle.validation.tooLong', { max: MAX_RELEASE_VERSION })
+  }
+  if ((f.developmentNotes ?? '').length > MAX_NOTES) {
+    e.notes = t('modules.lifecycle.validation.tooLong', { max: MAX_NOTES })
+  }
+  // A module cannot be production-ready while neither axis is.
+  if (f.productionReady && be && fe && !be.productionReady && !fe.productionReady) {
+    e.productionReady = t('modules.lifecycle.validation.notProductionReady')
+  }
+  return e
+})
+
+const lifecycleValid = computed(() => Object.keys(lifecycleErrors.value).length === 0)
 
 async function loadLifecycleStatuses() {
   if (lifecycleStatuses.value.length) return
@@ -101,7 +149,7 @@ async function openLifecycle(module: AppModule) {
 }
 
 async function saveLifecycle() {
-  if (!lifecycleTarget.value) return
+  if (!lifecycleTarget.value || !lifecycleValid.value) return
   lifecycleSaving.value = true
   clearError()
   try {
@@ -493,10 +541,11 @@ async function confirmDelete() {
             <v-col cols="12" sm="6">
               <v-select
                 v-model="lifecycleForm.backendStatusCode"
-                :items="backendStageOptions.filter((s) => s.code !== 'FRONTEND_READY')"
+                :items="backendStageOptions"
                 item-title="name"
                 item-value="code"
                 :label="t('modules.lifecycle.backendStatus')"
+                :error-messages="lifecycleErrors.backend"
                 density="comfortable"
                 variant="outlined"
               />
@@ -504,10 +553,11 @@ async function confirmDelete() {
             <v-col cols="12" sm="6">
               <v-select
                 v-model="lifecycleForm.frontendStatusCode"
-                :items="frontendStageOptions.filter((s) => s.code !== 'BACKEND_READY')"
+                :items="frontendStageOptions"
                 item-title="name"
                 item-value="code"
                 :label="t('modules.lifecycle.frontendStatus')"
+                :error-messages="lifecycleErrors.frontend"
                 density="comfortable"
                 variant="outlined"
               />
@@ -516,7 +566,7 @@ async function confirmDelete() {
             <v-col cols="12">
               <v-select
                 v-model="lifecycleForm.overallStatusCode"
-                :items="[{ name: t('modules.lifecycle.derived'), code: '' }, ...backendStageOptions]"
+                :items="[{ name: t('modules.lifecycle.derived'), code: '' }, ...overallStageOptions]"
                 item-title="name"
                 item-value="code"
                 :label="t('modules.lifecycle.overallStatus')"
@@ -542,6 +592,9 @@ async function confirmDelete() {
               <v-text-field
                 v-model="lifecycleForm.releaseVersion"
                 :label="t('modules.lifecycle.releaseVersion')"
+                :error-messages="lifecycleErrors.releaseVersion"
+                :counter="MAX_RELEASE_VERSION"
+                :maxlength="MAX_RELEASE_VERSION"
                 density="comfortable"
                 variant="outlined"
                 placeholder="1.4.0"
@@ -552,6 +605,9 @@ async function confirmDelete() {
               <v-textarea
                 v-model="lifecycleForm.developmentNotes"
                 :label="t('modules.lifecycle.notes')"
+                :error-messages="lifecycleErrors.notes"
+                :counter="MAX_NOTES"
+                :maxlength="MAX_NOTES"
                 rows="2"
                 auto-grow
                 density="comfortable"
@@ -573,9 +629,10 @@ async function confirmDelete() {
               <v-switch
                 v-model="lifecycleForm.productionReady"
                 :label="t('modules.lifecycle.productionReady')"
+                :error-messages="lifecycleErrors.productionReady"
                 color="primary"
                 density="compact"
-                hide-details
+                hide-details="auto"
                 inset
               />
             </v-col>
@@ -584,7 +641,13 @@ async function confirmDelete() {
         <v-card-actions class="px-6 pb-4">
           <v-spacer />
           <v-btn variant="text" @click="lifecycleOpen = false">{{ t('common.cancel') }}</v-btn>
-          <v-btn color="primary" variant="flat" :loading="lifecycleSaving" @click="saveLifecycle">
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="lifecycleSaving"
+            :disabled="!lifecycleValid"
+            @click="saveLifecycle"
+          >
             {{ t('common.save') }}
           </v-btn>
         </v-card-actions>

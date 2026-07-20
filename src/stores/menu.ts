@@ -104,20 +104,42 @@ export const useMenuStore = defineStore('menu', () => {
     return items.value.find((item) => item.path === path) ?? null
   }
 
+  /** True when this bundle physically contains a screen for the path. */
+  function hasFrontendRoute(item: MenuItem): boolean {
+    const resolved = router.resolve(item.path)
+    return !!resolved.name && resolved.name !== 'not-found' && !dynamicRouteNames.includes(String(resolved.name))
+  }
+
   /**
    * Whether a module should be presented as not-yet-usable.
    *
-   * Prefers the backend's verdict; falls back to "no static route exists" so
-   * the UI still behaves sensibly against a backend that predates the
-   * lifecycle fields.
+   * Resolution order — the backend is the single source of truth and route
+   * existence is only a safety net:
+   *
+   *   1. backend says showPlaceholder      -> placeholder
+   *   2. backend says not navigable        -> placeholder
+   *   3. backend says navigable + a screen exists -> real view
+   *   4. no screen in this bundle          -> placeholder (safe fallback)
+   *
+   * Step 4 also covers a backend that predates the lifecycle fields, where
+   * every flag is undefined and behaviour reverts to the original rule.
    */
   function showsPlaceholder(item: MenuItem): boolean {
-    if (typeof item.showPlaceholder === 'boolean') {
-      return item.showPlaceholder
+    if (item.showPlaceholder === true) {
+      return true
     }
-    const resolved = router.resolve(item.path)
-    return !resolved.name || resolved.name === 'not-found'
+    if (item.navigable === false) {
+      return true
+    }
+    // The backend says the module is usable (or predates the fields). Render
+    // the real screen only if one is actually shipped in this bundle.
+    return !hasFrontendRoute(item)
   }
 
-  return { items, loaded, load, reset, byPath, showsPlaceholder }
+  /** Whether the user may open the module at all (backend verdict wins). */
+  function isNavigable(item: MenuItem): boolean {
+    return item.navigable !== false
+  }
+
+  return { items, loaded, load, reset, byPath, showsPlaceholder, isNavigable, hasFrontendRoute }
 })

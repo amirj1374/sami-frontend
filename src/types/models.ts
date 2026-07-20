@@ -147,6 +147,13 @@ export interface ModuleStatus {
   color: string | null
   icon: string | null
   lifecycleRank: number
+  /**
+   * Whether the stage is a legal value for each axis. The admin dropdowns
+   * filter on these flags, so adding a stage in the database needs no
+   * frontend change and no stage code is ever named in the UI.
+   */
+  appliesToBackend: boolean
+  appliesToFrontend: boolean
   navigable: boolean
   showsPlaceholder: boolean
   productionReady: boolean
