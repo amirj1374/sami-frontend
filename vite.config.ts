@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 7474,
     // Proxy API calls to the backend in development so the browser makes
     // same-origin requests and there are no CORS surprises.
     proxy: {
