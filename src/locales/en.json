@@ -177,7 +177,56 @@
   "placeholder": {
     "defaultName": "this module",
     "description": "This module is scaffolded and ready to be built.",
-    "scaffolded": "{name} — coming soon"
+    "scaffolded": "{name} — coming soon",
+    "progress": "Implementation progress",
+    "axis": {
+      "backend": "Backend",
+      "frontend": "Interface",
+      "release": "Release"
+    },
+    "status": {
+      "PLANNED": {
+        "title": "{name} — planned",
+        "description": "This module is planned for future development."
+      },
+      "IN_DEVELOPMENT": {
+        "title": "{name} — in development",
+        "description": "This module is currently under development."
+      },
+      "BACKEND_READY": {
+        "title": "{name} — backend ready",
+        "description": "Backend services are ready. The user interface is still being built."
+      },
+      "FRONTEND_READY": {
+        "title": "{name} — interface ready",
+        "description": "The user interface is ready. Backend services are still being built."
+      },
+      "BETA": {
+        "title": "{name} — beta",
+        "description": "This module is feature-complete and undergoing validation."
+      },
+      "ACTIVE": {
+        "title": "{name} — available",
+        "description": "This module is available."
+      },
+      "DEPRECATED": {
+        "title": "{name} — deprecated",
+        "description": "This module is still available but is scheduled for removal."
+      },
+      "RETIRED": {
+        "title": "{name} — retired",
+        "description": "This module has been withdrawn from service."
+      }
+    },
+    "pair": {
+      "BACKEND_READY__PLANNED": "Backend services are ready. The user interface has not been started yet.",
+      "BACKEND_READY__IN_DEVELOPMENT": "Backend services are ready. The user interface is under development.",
+      "ACTIVE__PLANNED": "Backend services are live. The user interface has not been started yet.",
+      "ACTIVE__IN_DEVELOPMENT": "Backend services are live. The user interface is under development.",
+      "IN_DEVELOPMENT__PLANNED": "Backend services are under development. The user interface has not been started yet.",
+      "PLANNED__FRONTEND_READY": "The user interface is ready, but backend services are not available yet.",
+      "PLANNED__PLANNED": "This module is planned. Neither the backend nor the interface has been started."
+    }
   },
   "products": {
     "title": "Products",
@@ -226,7 +275,22 @@
     "permissions": "Permissions",
     "createPermissions": "Create the six standard permissions",
     "deleteTitle": "Delete module",
-    "deleteConfirm": "Deleting this module removes its permissions and menu entry. Continue?"
+    "deleteConfirm": "Deleting this module removes its permissions and menu entry. Continue?",
+    "lifecycle": {
+      "column": "Lifecycle",
+      "manage": "Manage lifecycle",
+      "title": "Lifecycle — {name}",
+      "backendStatus": "Backend status",
+      "frontendStatus": "Interface status",
+      "overallStatus": "Overall status",
+      "derived": "Derived from the two axes",
+      "overallHint": "Leave derived unless you need to state the overall status explicitly.",
+      "progress": "Progress",
+      "releaseVersion": "Release version",
+      "notes": "Development notes",
+      "available": "Available",
+      "productionReady": "Production ready"
+    }
   },
   "permissions": {
     "title": "Permissions",
